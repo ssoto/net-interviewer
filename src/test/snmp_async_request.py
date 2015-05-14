@@ -28,7 +28,7 @@ queryMibs = (('SNMPv2-MIB', 'sysDescr', 0),
              ('SNMPv2-MIB', 'sysLocation', 0),
              ('SNMPv2-MIB', 'sysName', 0),
              
-             ('SNMPv2-MIB', 'cDot11ActiveWirelessClients', 0),
+             ('CISCO-DOT11-ASSOCIATION-MIB', 'cDot11ClientIpAddress', 0),
              #('SNMPv2-MIB', 'cDot11ClientCurrentTxRateSet', 0)
              #('SNMPv2-MIB', 'cDot11ClientIpAddress', 0)
              #('SNMPv2-MIB', 'oriStationStatTableIPAddress', 0)
@@ -47,7 +47,8 @@ for (snmp_version, mib_name, ident) in queryMibs:
             cmdgen.UdpTransportTarget(('10.200.0.10', 161)),
             #cmdgen.UdpTransportTarget(('127.0.0.1', 1161)),
             (mib_instance,),
-            (cbFun, None)
+            (cbFun, None),
+            lookupNames=True, lookupValues=True
         )
     except Exception, e:
         print e
