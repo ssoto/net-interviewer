@@ -2,7 +2,9 @@
 # -*- coding: utf-8 -*-
 
 from snmp.table import Snmp_table_request
-import pprint
+from pprint import pprint
+
+from utils.ip_manager import get_decimal_ip
 
 
 if __name__ == '__main__':
@@ -23,8 +25,13 @@ if __name__ == '__main__':
                                    mib_name = cisco_DOT11, 
                                    oid_name = config_table_OID)
     config_table_OID_req.request()
-    table_dict = config_table_OID_req.get_json_reply()
-    pprint.pprint(table_dict)
+    config_table_dict = config_table_OID_req.get_json_reply()
+    
+    for index in config_table_dict:
+        element = config_table_dict[index]
+        element['IpAddress'] = get_decimal_ip(element['IpAddress'])
+
+    print ('===================================================')
 
     statistic_table_OID_req = Snmp_table_request(server = ip, 
                                    community = community, 
@@ -35,6 +42,5 @@ if __name__ == '__main__':
     statistic_table_OID_req.request()
 
     statistic_dict = statistic_table_OID_req.get_json_reply()
-    pprint.pprint(statistic_dict)
-    import pdb; pdb.set_trace() #BREAKPOINT 
     
+    import ipdb; ipdb.set_trace()
