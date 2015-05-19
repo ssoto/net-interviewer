@@ -2,15 +2,20 @@
 # -*- coding: utf-8 -*-
 
 import argparse
+import time
 import json
 import os
 from pprint import pprint
 from snmp.table import Snmp_table_request
-from sys import argv
+import sys
 
+from logstash.udp import Sender
 from utils.ip_manager import get_decimal_ip
 from utils.color_print import error, success
 
+
+import logging
+logging.basicConfig(format='%(asctime)s - %(pathname)s:%(lineno)d : %(levelname)s : %(message)s', level=logging.DEBUG)
 
 def parse_args():
 
@@ -36,19 +41,33 @@ def parse_args():
                         type=str, nargs='+',
                         dest='oids',  help='list of oids')
 
-    parser.add_argument('-w', '--write_output', dest='file_path',
+    parser.add_argument('-w', '--write_output', dest='file_name', 
                         help='if passed, snmp output are writed on the file')
-    
+
+    parser.add_argument('-ls', '--ls-host', dest='logstash_host',
+                        type=str, help='logstash address to send output')
+
+    parser.add_argument('-lgp', '--ls-port', dest='logstash_port',
+                        type=int, help='UDP port of logstash to send json message')
+
+        
     args_parsed = parser.parse_args()
 
+    logging.debug('options passed to the application: %s' % args_parsed)
+
     # check file to output to print
-    if hasattr(args_parsed, 'file_path') and os.path.isfile(args_parsed.file_path):
+    if hasattr(args_parsed, 'file_name') and args_parsed.file_name:
         try: 
-            open(args_parsed.file_path)
+            open(args_parsed.file_name)
         except IOError as e:
             error("Error with file to write request output: " + args_parsed.file_path)
             sys.exit(0)
     
+    if hasattr(args_parsed, 'logstash_host') and args_parsed.logstash_host:
+        if not hasattr(args_parsed, 'logstash_port') and args_parsed.logstash_port: 
+            error("Logstash host and port are needed")
+            sys.exit(0)
+
     return args_parsed
 
 def append_field(data, original_ds, destination_ds, field):
@@ -93,13 +112,13 @@ def append_field(data, original_ds, destination_ds, field):
         data[destination_ds][ident][field] = ip_address
 
 def write_on_file (file_name, object_data):
-    with open(file_name+'.json', 'w') as outfile:
+    with open(file_name, 'w') as outfile:
         json.dump(object_data, outfile, indent=2)
 
-if __name__ == '__main__':
+def work():
 
     args = parse_args()
-    data_dict = {}
+    data_dict = { }
 
     for oid in args.oids:
 
@@ -124,7 +143,6 @@ if __name__ == '__main__':
         mib_oid_name = args.mib_name+"::"+oid 
         
         data_dict[mib_oid_name] = table_dict
-        write_on_file(mib_oid_name, table_dict)
 
     # add ip field from 
     append_field(data=data_dict, 
@@ -132,9 +150,27 @@ if __name__ == '__main__':
                  destination_ds='CISCO-DOT11-ASSOCIATION-MIB::cDot11ClientStatisticTable',
                  field='IpAddress')
 
-    output_file = "./output_test"
-    success("Request done successfully, output json writed on " + args.file_path)
-    write_on_file( file_name="./output_test", 
-                   object_data = data_dict["CISCO-DOT11-ASSOCIATION-MIB::cDot11ClientStatisticTable"])
+    if hasattr(args, 'file_path'):
+        success("Request done successfully, output json writed on " + args.file_name)
+        write_on_file( file_name=args.file_name, 
+                       object_data = data_dict)
+
+    if hasattr(args, 'logstash_host') and args.logstash_host and \
+        hasattr(args,'logstash_port') and args.logstash_port:
+        s = Sender(args.logstash_host, args.logstash_port)
+        snmp_data = data_dict["CISCO-DOT11-ASSOCIATION-MIB::cDot11ClientStatisticTable"]
+        logging.debug("sending CISCO-DOT11-ASSOCIATION-MIB::cDot11ClientStatisticTable info")
+        for element in snmp_data.keys():
+            s.send_dict(snmp_data[element])
+        logging.debug("sent info")
+    else:
+        logging.debug("Information hasn't be sent.")
+
+
+if __name__ == '__main__':
+    while True:
+        work()
+        time.sleep(15)
+
 
     
