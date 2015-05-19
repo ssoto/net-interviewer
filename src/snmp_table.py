@@ -8,7 +8,7 @@ from pprint import pprint
 from snmp.table import Snmp_table_request
 from sys import argv
 
-from utils.ip_manager import get_decimal_ip, append_field
+from utils.ip_manager import get_decimal_ip
 from utils.color_print import error, success
 
 
@@ -51,6 +51,46 @@ def parse_args():
     
     return args_parsed
 
+def append_field(data, original_ds, destination_ds, field):
+    """
+    Try add a new field on destination_ds for each element in 
+    destination_ds with same key. 
+
+    >>> print data
+    data  = {
+        original_ds : {
+            key_a : {
+                target_field: value
+                ...
+            }
+        },
+        destination_ds : {
+            key_a : {
+                ...
+            }
+        } 
+    }
+    >>> append_field (data, "original_ds", "destination_ds", "target_field") 
+    >>> print data
+    data  = {
+        original_ds : {
+            key_a : {
+                target_field: value
+                ...
+            }
+        },
+        destination_ds : {
+            key_a : {
+                target_field: value
+                ...
+            }
+        } 
+    }
+
+    """
+    for ident in data[destination_ds].keys():
+        ip_address = data[original_ds][ident][field]
+        data[destination_ds][ident][field] = ip_address
 
 def write_on_file (file_name, object_data):
     with open(file_name+'.json', 'w') as outfile:
