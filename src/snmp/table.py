@@ -24,7 +24,6 @@ class Snmp_table_request:
         self.snmp_version = snmp_version
         self.mib_name = mib_name
         self.oid_name = oid_name
-        logging.debug("created new ")
         self.__cmd = ["snmptable",
                      "-v",
                      snmp_version,
@@ -33,20 +32,19 @@ class Snmp_table_request:
                      server]
 
         self.__cmd.extend(default_arguments)
-
         self.__cmd.append(mib_name + ":" + oid_name)
-
+        command_str = ' '.join(map(str, self.__cmd))
+        logging.info("new rquest created: "+ command_str)
 
     def __get_current_time(self):
 
         utc = pytz.utc
-        fmt = '%Y-%m-%d %H:%M:%S %Z'
+        fmt = '%Y-%m-%d %H:%M:%S %z'
         madrid_tz = pytz.timezone('Europe/Madrid')
 
         dt = datetime.datetime.now()
         madrid_dt = madrid_tz.localize(dt)
         return madrid_dt.astimezone(utc).strftime(fmt)
-
 
     def request(self, simulate=False):
         #TODO: make a real subprocess.checkoutput(cmd)
