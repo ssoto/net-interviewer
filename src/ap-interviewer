@@ -13,10 +13,6 @@ from logstash.udp import Sender
 from utils.ip_manager import get_decimal_ip
 from utils.color_print import error, success
 
-
-import logging
-logging.basicConfig(format='%(asctime)s - %(pathname)s:%(lineno)d : %(levelname)s : %(message)s', level=logging.DEBUG)
-
 def parse_args():
 
     parser = argparse.ArgumentParser()
@@ -67,7 +63,7 @@ def parse_args():
 
     return args_parsed
 
-def append_field(data, original_ds, destination_ds, field_list):
+def append_field_from_ds(data, original_ds, destination_ds, field_list):
     """
     Try add a new field on destination_ds for each element in 
     destination_ds with same key. 
@@ -87,7 +83,7 @@ def append_field(data, original_ds, destination_ds, field_list):
             }
         } 
     }
-    >>> append_field (data, "original_ds", "destination_ds", ["target_field", "target_field_2"] ) 
+    >>> append_field_from_ds (data, "original_ds", "destination_ds", ["target_field", "target_field_2"] ) 
     >>> print data
     data  = {
         original_ds : {
@@ -115,6 +111,18 @@ def append_field(data, original_ds, destination_ds, field_list):
             except  KeyError as error:
                 logging.debug("element with identier " + ident + " not present in original set" )
 
+def append_field(field_name, field_value, destination_ds):
+    """
+    Append to destination_ds dictionary the new field and value:
+    >>> print destination_ds
+    {'key1': 1, 'key2': 2}
+    >>> append_field('new_key', 23, destination_ds)
+    {'key1': 1, 'key2': 2, 'new_key': 23}
+    }
+    """
+    for ident in destination_ds:
+        destination_ds[ident][field_name] = field_value
+
 def write_on_file (file_name, object_data):
         logging.debug("Writting the output to " + file_name)
         try: 
@@ -125,11 +133,11 @@ def write_on_file (file_name, object_data):
             sys.exit(0)
     
 
-def work(args):
-
+def do_the_work(args):
     
     data_dict = { }
 
+    # get all OIDs dicts
     for oid in args.oids:
 
         OID_req = Snmp_table_request( server = args.server, 
@@ -145,20 +153,29 @@ def work(args):
             break
         table_dict = OID_req.get_json_reply()
         
+        # special case, change IpAddress from Hexadecimal
         if oid == 'cDot11ClientConfigInfoTable':
             for index in table_dict:
                 element = table_dict[index]
                 element['IpAddress'] = get_decimal_ip(element['IpAddress'])
         
         mib_oid_name = args.mib_name+"::"+oid 
-        
+        # add new key/field to the data_dictionary with the current OID
         data_dict[mib_oid_name] = table_dict
 
-    # add ip field from 
-    append_field(data=data_dict, 
+    # add fields from cDot11ClientConfigInfoTable to cDot11ClientStatisticTable
+    append_field_from_ds(data=data_dict, 
                  original_ds='CISCO-DOT11-ASSOCIATION-MIB::cDot11ClientConfigInfoTable',
                  destination_ds='CISCO-DOT11-ASSOCIATION-MIB::cDot11ClientStatisticTable',
                  field_list=['IpAddress', 'AssociationState', 'ParentAddress', 'VlanId', ])
+
+    # add access point ip address
+    # field_name, field_value, destination_ds
+    append_field( field_name="ApAddress", 
+                  field_value=args.server, 
+                  destination_ds = data_dict['CISCO-DOT11-ASSOCIATION-MIB::cDot11ClientStatisticTable'])
+    
+    import ipdb; ipdb.set_trace()
 
     if hasattr(args, 'file_name') and args.file_name:
         write_on_file( file_name=args.file_name, 
@@ -168,19 +185,23 @@ def work(args):
     if hasattr(args, 'logstash_host') and args.logstash_host and \
         hasattr(args,'logstash_port') and args.logstash_port:
         s = Sender(args.logstash_host, args.logstash_port)
-        snmp_data = data_dict["CISCO-DOT11-ASSOCIATION-MIB::cDot11ClientStatisticTable"]
+        snmp_statistic_table = data_dict["CISCO-DOT11-ASSOCIATION-MIB::cDot11ClientStatisticTable"]
         logging.debug("sending CISCO-DOT11-ASSOCIATION-MIB::cDot11ClientStatisticTable info")
-        for element in snmp_data.keys():
-            s.send_dict(snmp_data[element])
+        for element in snmp_statistic_table.keys():
+            s.send_dict(snmp_statistic_table[element])
         logging.debug("sent info")
     else:
         logging.debug("Information hasn't be sent.")
 
 
 if __name__ == '__main__':
+    # logging stuff
+    import logging
+    logging.basicConfig(format='%(asctime)s - %(pathname)s:%(lineno)d : %(levelname)s : %(message)s', level=logging.DEBUG)
+
     args = parse_args()
     while True:
-        work(args)
+        do_the_work(args)
         time.sleep(args.seconds_interval)
 
 
