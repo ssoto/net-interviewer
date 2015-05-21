@@ -13,6 +13,11 @@ from logstash.udp import Sender
 from utils.ip_manager import get_decimal_ip
 from utils.color_print import error, success
 
+import logging
+logging.basicConfig( format='%(asctime)s - %(pathname)s:%(lineno)d : %(levelname)s  : %(message)s', 
+                     level=logging.DEBUG)
+
+
 def parse_args():
 
     parser = argparse.ArgumentParser()
@@ -131,78 +136,77 @@ def write_on_file (file_name, object_data):
         except IOError as e:
             error("Error with file to write request output: " + file_name)
             sys.exit(0)
+
+def send_data(sender, data):
+    """
+    Manage the special fields (like counters) and send it
+    """
+    logging.error("IMPLEMENT SEND LOGIC")
     
-
-def do_the_work(args):
-    
-    data_dict = { }
-
-    # get all OIDs dicts
-    for oid in args.oids:
-
-        OID_req = Snmp_table_request( server = args.server, 
-                                      community = args.community, 
-                                      snmp_version = args.snmp_version,
-                                      port = args.port,
-                                      mib_name = args.mib_name, 
-                                      oid_name = oid)
-        try:
-            OID_req.request()
-        except Exception as excep:
-            error("Error on request " + args.mib_name + '::' + oid)
-            break
-        table_dict = OID_req.get_json_reply()
-        
-        # special case, change IpAddress from Hexadecimal
-        if oid == 'cDot11ClientConfigInfoTable':
-            for index in table_dict:
-                element = table_dict[index]
-                element['IpAddress'] = get_decimal_ip(element['IpAddress'])
-        
-        mib_oid_name = args.mib_name+"::"+oid 
-        # add new key/field to the data_dictionary with the current OID
-        data_dict[mib_oid_name] = table_dict
-
-    # add fields from cDot11ClientConfigInfoTable to cDot11ClientStatisticTable
-    append_field_from_ds(data=data_dict, 
-                 original_ds='CISCO-DOT11-ASSOCIATION-MIB::cDot11ClientConfigInfoTable',
-                 destination_ds='CISCO-DOT11-ASSOCIATION-MIB::cDot11ClientStatisticTable',
-                 field_list=['IpAddress', 'AssociationState', 'ParentAddress', 'VlanId', ])
-
-    # add access point ip address
-    # field_name, field_value, destination_ds
-    append_field( field_name="ApAddress", 
-                  field_value=args.server, 
-                  destination_ds = data_dict['CISCO-DOT11-ASSOCIATION-MIB::cDot11ClientStatisticTable'])
-    
-    import ipdb; ipdb.set_trace()
-
-    if hasattr(args, 'file_name') and args.file_name:
-        write_on_file( file_name=args.file_name, 
-                       object_data = data_dict)
-        success("Request done successfully, output json writed on " + args.file_name)
-
-    if hasattr(args, 'logstash_host') and args.logstash_host and \
-        hasattr(args,'logstash_port') and args.logstash_port:
-        s = Sender(args.logstash_host, args.logstash_port)
-        snmp_statistic_table = data_dict["CISCO-DOT11-ASSOCIATION-MIB::cDot11ClientStatisticTable"]
-        logging.debug("sending CISCO-DOT11-ASSOCIATION-MIB::cDot11ClientStatisticTable info")
-        for element in snmp_statistic_table.keys():
-            s.send_dict(snmp_statistic_table[element])
-        logging.debug("sent info")
-    else:
-        logging.debug("Information hasn't be sent.")
-
+    pass    
 
 if __name__ == '__main__':
-    # logging stuff
-    import logging
-    logging.basicConfig(format='%(asctime)s - %(pathname)s:%(lineno)d : %(levelname)s : %(message)s', level=logging.DEBUG)
-
-    args = parse_args()
-    while True:
-        do_the_work(args)
-        time.sleep(args.seconds_interval)
-
-
     
+    args = parse_args()
+
+    if hasattr(args, 'logstash_host') and args.logstash_host and \
+        hasattr(args,'logstash_port') and args.logstash_port:    
+        udp_sender = Sender( server=args.logstash_host, 
+                         port=args.logstash_port)
+    else:
+        udp_sender = None
+    
+    # get arguments object
+
+    while True:
+        data_dict = { }
+
+        # get all OIDs dicts
+        for oid in args.oids:
+
+            OID_req = Snmp_table_request( server = args.server, 
+                                          community = args.community, 
+                                          snmp_version = args.snmp_version,
+                                          port = args.port,
+                                          mib_name = args.mib_name, 
+                                          oid_name = oid)
+            try:
+                OID_req.request()
+            except Exception as excep:
+                error("Error on request " + args.mib_name + '::' + oid)
+                break
+            table_dict = OID_req.get_json_reply()
+            
+            # special case, change IpAddress from Hexadecimal
+            if oid == 'cDot11ClientConfigInfoTable':
+                for index in table_dict:
+                    element = table_dict[index]
+                    element['IpAddress'] = get_decimal_ip(element['IpAddress'])
+            
+            mib_oid_name = args.mib_name+"::"+oid 
+            # add new key/field to the data_dictionary with the current OID
+            data_dict[mib_oid_name] = table_dict
+
+        # add fields from cDot11ClientConfigInfoTable to cDot11ClientStatisticTable
+        append_field_from_ds(data=data_dict, 
+                             original_ds='CISCO-DOT11-ASSOCIATION-MIB::cDot11ClientConfigInfoTable',
+                             destination_ds='CISCO-DOT11-ASSOCIATION-MIB::cDot11ClientStatisticTable',
+                             field_list=['IpAddress', 'AssociationState', 'ParentAddress', 'VlanId', ])
+
+        # add access point ip address 
+        append_field( field_name="ApAddress", 
+                      field_value=args.server, 
+                      destination_ds = data_dict['CISCO-DOT11-ASSOCIATION-MIB::cDot11ClientStatisticTable'])
+        
+        if hasattr(args, 'file_name') and args.file_name:
+            write_on_file( file_name=args.file_name, 
+                           object_data = data_dict["CISCO-DOT11-ASSOCIATION-MIB::cDot11ClientStatisticTable"])
+            success("Request done successfully, output json writed on " + args.file_name)
+
+        if  udp_sender:
+            udp_sender.send_dict_values(dict_2_send=data_dict["CISCO-DOT11-ASSOCIATION-MIB::cDot11ClientStatisticTable"],
+                                register_fields=['PacketsSent','PacketsReceived', 'BytesSent', 'BytesReceived'])
+            # udp_sender.send_dict_values(dict_2_send=data_dict["CISCO-DOT11-ASSOCIATION-MIB::cDot11ClientStatisticTable"])
+
+        # sleep during a few seconds!
+        time.sleep(args.seconds_interval)
