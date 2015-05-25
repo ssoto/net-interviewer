@@ -1,11 +1,11 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-import datetime
 import logging
-import pytz
 import re
 import subprocess
+
+from utils.time import get_current_time
 
 class Snmp_table_request:
     """
@@ -36,18 +36,10 @@ class Snmp_table_request:
         command_str = ' '.join(map(str, self.__cmd))
         logging.info("new rquest created: "+ command_str)
 
-    def __get_current_time(self):
-
-        utc = pytz.utc
-        fmt = '%Y-%m-%d %H:%M:%S %z'
-        madrid_tz = pytz.timezone('Europe/Madrid')
-
-        dt = datetime.datetime.now()
-        madrid_dt = madrid_tz.localize(dt)
-        return madrid_dt.astimezone(utc).strftime(fmt)
-
+    
     def request(self, simulate=False):    
-        self.__timestamp = self.__get_current_time()
+
+        self.__timestamp = get_current_time()
         logging.debug('timestamp local: %s' % self.__timestamp)
         try:
             self.raw_output = subprocess.check_output(self.__cmd)
@@ -55,7 +47,11 @@ class Snmp_table_request:
             logging.error("Error doing request")
             raise
 
-    def get_json_reply(self):
+    def get_json_reply(self, timestamp_field_name='@timestamp'):
+        """
+        Argument timestamp_field_name will give the name of the field where
+        the received timestamp will be wrote
+        """
         if hasattr(self, 'json_output'):
             return self.json_output
         elif not hasattr(self, 'raw_output'):
@@ -68,11 +64,11 @@ class Snmp_table_request:
             header = output_list[0]
             rows = output_list[1:-1]
 
-            self.json_output = self._get_body_dict(header, rows)
+            self.json_output = self._get_body_dict(header, rows, timestamp_field_name)
 
             return self.json_output
 
-    def _get_body_dict(self, header, elements):
+    def _get_body_dict(self, header, elements, timestamp_name):
 
         result = {}
 
@@ -90,7 +86,7 @@ class Snmp_table_request:
             (num_id, ssid, mac_address) = m.groups()
             element_dict['MacAddress'] = mac_address
             element_dict['SSIDName'] = ssid
-            element_dict['logTimestamp'] = self.__timestamp
+            element_dict[timestamp_name] = self.__timestamp
 
             #manage dictionary key. I'm going to use the MAC to search after
             result[mac_address] = element_dict

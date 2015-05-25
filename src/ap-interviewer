@@ -55,7 +55,10 @@ def parse_args():
                         type=int, default=60, 
                         help="time between polling")
 
-        
+    parser.add_argument('-t', '--timestamp_field', dest='timestamp_field_name', 
+                        type=str, default="logTimestamp", 
+                        help="time between polling")
+
     args_parsed = parser.parse_args()
 
     logging.debug('options passed to the application: %s' % args_parsed)
@@ -108,6 +111,7 @@ def append_field_from_ds(data, original_ds, destination_ds, field_list):
     }
 
     """
+
     for field in field_list: 
         for ident in data[destination_ds].keys():
             try :
@@ -129,9 +133,10 @@ def append_field(field_name, field_value, destination_ds):
         destination_ds[ident][field_name] = field_value
 
 def write_on_file (file_name, object_data):
+
         logging.debug("Writting the output to " + file_name)
         try: 
-            with open(file_name, 'w') as outfile:
+            with open(file_name, 'a') as outfile:
                 json.dump(object_data, outfile, indent=2)
         except IOError as e:
             error("Error with file to write request output: " + file_name)
@@ -146,7 +151,7 @@ def send_data(sender, data):
     pass    
 
 if __name__ == '__main__':
-    
+
     args = parse_args()
 
     if hasattr(args, 'logstash_host') and args.logstash_host and \
@@ -173,9 +178,10 @@ if __name__ == '__main__':
             try:
                 OID_req.request()
             except Exception as excep:
-                error("Error on request " + args.mib_name + '::' + oid)
+                logging.error("Error on request " + args.mib_name + '::' + oid)
+                logging.error(repr(excep))
                 break
-            table_dict = OID_req.get_json_reply()
+            table_dict = OID_req.get_json_reply(args.timestamp_field_name)
             
             # special case, change IpAddress from Hexadecimal
             if oid == 'cDot11ClientConfigInfoTable':
@@ -183,6 +189,7 @@ if __name__ == '__main__':
                     element = table_dict[index]
                     element['IpAddress'] = get_decimal_ip(element['IpAddress'])
             
+
             mib_oid_name = args.mib_name+"::"+oid 
             # add new key/field to the data_dictionary with the current OID
             data_dict[mib_oid_name] = table_dict
@@ -205,8 +212,8 @@ if __name__ == '__main__':
 
         if  udp_sender:
             udp_sender.send_dict_values(dict_2_send=data_dict["CISCO-DOT11-ASSOCIATION-MIB::cDot11ClientStatisticTable"],
-                                register_fields=['PacketsSent','PacketsReceived', 'BytesSent', 'BytesReceived'])
-            # udp_sender.send_dict_values(dict_2_send=data_dict["CISCO-DOT11-ASSOCIATION-MIB::cDot11ClientStatisticTable"])
+                                register_fields=['PacketsSent','PacketsReceived', 'BytesSent', 'BytesReceived'],
+                                timestamp_field=args.timestamp_field_name)
 
         # sleep during a few seconds!
         time.sleep(args.seconds_interval)
