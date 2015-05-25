@@ -1,3 +1,17 @@
+# HOW TO USE
+
+```
+#!/bin/bash
+
+git clone https://github.com/wtelecom/net-interviewer -b jobQueue
+
+cd net-interviewer
+source bin/activate
+pip install -r requirements.txt
+cd src/jobs/
+
+python simple_test.py
+```
 
 # TODO
 0. Define how much queues will be used
