@@ -59,6 +59,10 @@ def parse_args():
                         type=str, default="logTimestamp", 
                         help="time between polling")
 
+    parser.add_argument('-f', '--config_file', dest='config_file_path', 
+                        type=str, default="./net_interviewer.conf", 
+                        help="path of the configuration file")
+
     args_parsed = parser.parse_args()
 
     logging.debug('options passed to the application: %s' % args_parsed)
