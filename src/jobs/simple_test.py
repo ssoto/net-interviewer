@@ -17,16 +17,16 @@ class Producer(threading.Thread):
         self.queue_host = queue_host
         self.topic = topic
         self.client = KafkaClient(queue_host + ':' + str(queue_port))
-        self._test_messages = [ '0 (first first message)',
-                                'First message, only test',
-                                'Second message, only test',
-                                '3rd message, only test',
-                                '4th message, only test',
-                                '5th message, only test',
-                                '6th message, only test',
-                                '7th message, only test',
-                                '8th message, only test',
-                                '10th message, only test']
+        self._test_messages = [ "{id: '1sth', text: 'message, only test'}",
+                                "{id: '2nd', text: 'message, only test'}",
+                                "{id: '3rd', text: 'message, only test'}",
+                                "{id: '4th', text: 'message, only test'}",
+                                "{id: '5th', text: 'message, only test'}",
+                                "{id: '6th', text: 'message, only test'}",
+                                "{id: '7th', text: 'message, only test'}",
+                                "{id: '8th', text: 'message, only test'}",
+                                "{id: '10th', text: 'message, only test'}",
+                              ]
 
 
     def run(self):
@@ -40,7 +40,7 @@ class Producer(threading.Thread):
             producer.send_messages(self.topic, 
                                    message)
 
-            logging.info('Sent message: ' + message)
+            logging.info('SENT MESSAGE: ' + message)
 
             time.sleep(2)
 
@@ -62,12 +62,12 @@ class Consumer(threading.Thread):
         consumer = SimpleConsumer(client, "test-group", self.topic)
 
         for message in consumer:
-            logging.info(message)
+            logging.info("RECEIVED MESSAGE" + str(message))
 
 
 def main():
 
-    boot2docker = '192.168.59.103'
+    boot2docker = 'localhost'
 
     threads = [
         Producer(boot2docker, 9092, 'test'),
