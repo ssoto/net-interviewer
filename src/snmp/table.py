@@ -1,9 +1,12 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
+
+import csv
 import logging
 import re
 import subprocess
+import StringIO
 
 from utils.time import get_current_time
 
@@ -47,7 +50,7 @@ class Snmp_table_request:
             logging.error("Error doing request")
             raise
 
-    def get_json_reply(self, timestamp_field_name='@timestamp'):
+    def get_json_reply(self, index_field_name=None, timestamp_field_name='@timestamp'):
         """
         Argument timestamp_field_name will give the name of the field where
         the received timestamp will be wrote
@@ -57,18 +60,41 @@ class Snmp_table_request:
         elif not hasattr(self, 'raw_output'):
             raise AttributeError('request output has not been established... Request has not been done or failed')
         else:
-            tmp_list = [ x.split(',') for x in self.raw_output.split('\n') ]
-            # delete first 2 lines, an inroduccion message for the MIB
-            output_list = tmp_list[2:]
+            self.data_dict = self.parse_csv_string(self.raw_output,
+                                                   index_field_name,
+                                                   timestamp_field_name)
+            return self.data_dict
+
+    def parse_csv_string(self, scsv, index_field_name=None, timestamp_field_name=None):
+
+        result = {}
+
+        f = StringIO.StringIO(scsv)
+
+        reader = csv.reader(f, delimiter=',')
+
+        # drop first two lines, appended by snmptable command and useless for us
+        reader.next()
+        reader.next()
+
+        header = reader.next()
+
+        if not index_field_name:
+            index_field_name = header[0]
+        
+
+        for row in reader:
+            instance = {}
+
+            for index in range(0,len(row)):
+                instance [header[index]] = row[index]
+            instance[timestamp_field_name] = self.__timestamp
             
-            header = output_list[0]
-            rows = output_list[1:-1]
+            result[instance[index_field_name]] = instance
 
-            self.json_output = self._get_body_dict(header, rows, timestamp_field_name)
+        return result
 
-            return self.json_output
-
-    def _get_body_dict(self, header, elements, timestamp_name):
+    def _get_body_dict(self, header, elements, timestamp_name, index_field_name):
 
         result = {}
 
@@ -81,13 +107,19 @@ class Snmp_table_request:
             element_dict = {}
             for j in range(0, num_colums):
                 element_dict[header[j]] = (elements[i][j]).translate(None, '"').strip()
-            m = prog.match(element_dict['index'])
 
-            (num_id, ssid, mac_address) = m.groups()
-            element_dict['MacAddress'] = mac_address
-            element_dict['SSIDName'] = ssid
+
+            m = prog.match(element_dict['index'])
+            if m:
+                (num_id, ssid, mac_address) = m.groups()
+                element_dict['MacAddress'] = mac_address
+                element_dict['SSIDName'] = ssid
+                
             element_dict[timestamp_name] = self.__timestamp
 
             #manage dictionary key. I'm going to use the MAC to search after
             result[mac_address] = element_dict
         return result
+
+
+
