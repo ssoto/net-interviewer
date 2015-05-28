@@ -13,7 +13,7 @@ class StoppableThread(Thread):
     """Thread class with a stop() method. The thread itself has to check
     regularly for the stopped() condition."""
 
-    def __init__(self, group=None, target=None, name=None, args=(), kwargs=None, verbose=None):
+    def __init__(self, interval=None, group=None, target=None, name=None, args=(), kwargs=None, verbose=None):
         
         Thread.__init__( self, group=None, target=target, name=name, verbose=verbose)
         
@@ -23,8 +23,7 @@ class StoppableThread(Thread):
 
         self.stop_event = Event()
 
-        self.interval = kwargs['interval']
-
+        self.interval = int(interval)
 
     def stop(self):
         self.stop_event.set()
@@ -33,10 +32,6 @@ class StoppableThread(Thread):
         return self.stop_event.isSet()
 
     def run(self):
-
-        logging.debug("---- arg1: %s\n---- arg2: %s" %(self.__kwargs['arg1'], self.__kwargs['arg2']))
-
-        logging.debug("running thread %s" %self.name)
 
         while not self.stop_event.is_set():
 
@@ -59,9 +54,9 @@ if __name__ == "__main__":
         r = random.randint(2,5)
         t = StoppableThread( name="Thread-%s" %i,
                              target=job, 
+                             interval = r,
                              kwargs={"arg1":"Buenos", 
                                      "arg2":"desayuno",
-                                     "interval": r,
                                      "name": "Fran"})
         t.start()
         thread_pool.append(t)

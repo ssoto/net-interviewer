@@ -58,7 +58,7 @@ class Sender():
                         new_ammount = int(re.findall(r'\d+',new_values[field])[0])
                         old_ammount = int(re.findall(r'\d+',old_values[field])[0])
                     except IndexError as e:
-                        logging.error("error parsing field " + field + ":\n" + repr(e))
+                        #logging.error("error parsing field " + field + ":\n" + repr(e))
                         pass
 
                     key_diff = abs(old_ammount - new_ammount)

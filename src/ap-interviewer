@@ -146,13 +146,7 @@ def write_on_file (file_name, object_data):
             error("Error with file to write request output: " + file_name)
             sys.exit(0)
 
-def send_data(sender, data):
-    """
-    Manage the special fields (like counters) and send it
-    """
-    logging.error("IMPLEMENT SEND LOGIC")
-    
-    pass    
+
 
 if __name__ == '__main__':
 

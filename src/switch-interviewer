@@ -2,12 +2,12 @@
 # -*- coding: utf-8 -*-
 
 import argparse
-import time
 import json
-import os
 from pprint import pprint
+import os
 from snmp.table import Snmp_table_request
 import sys
+import time
 
 from logstash.udp import Sender
 from utils.ip_manager import get_decimal_ip
