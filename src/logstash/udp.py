@@ -15,7 +15,7 @@ class Sender():
         self.__port = port
         self.__memory_dict = None
 
-    def send_dict_values(self, dict_2_send, register_fields=None, timestamp_field="'logTimestamp'"):
+    def send_dict_values(self, dict_2_send, register_fields=None, timestamp_field='logTimestamp'):
 
         if register_fields and len(register_fields):
             
@@ -33,6 +33,7 @@ class Sender():
             self.__iterate_and_send(dict_2_send)
 
     def __iterate_and_send(self, dict_2_send):
+
         for element in dict_2_send:
             dict_str = json.dumps(dict_2_send[element])
             sock = socket.socket(socket.AF_INET, # Internet
@@ -53,8 +54,12 @@ class Sender():
                 break
             for field in fields:
                 if new_values[field] and old_values[field]:
-                    new_ammount = int(re.findall(r'\d+',new_values[field])[0])
-                    old_ammount = int(re.findall(r'\d+',old_values[field])[0])
+                    try:
+                        new_ammount = int(re.findall(r'\d+',new_values[field])[0])
+                        old_ammount = int(re.findall(r'\d+',old_values[field])[0])
+                    except IndexError as e:
+                        logging.error("error parsing field " + field + ":\n" + repr(e))
+                        pass
 
                     key_diff = abs(old_ammount - new_ammount)
                     dictionary[element_key][field+'Diff'] = key_diff
@@ -70,8 +75,8 @@ class Sender():
                         logging.debug("ZeroDivisionError in field field: " %(field))
                         pass
 
-                    logging.debug(  field + "Diff  => " + str(key_diff))
-                    logging.debug(  field + "DiffRate  => " + str(key_diff_rate))
+                    # logging.debug(  field + "Diff  => " + str(key_diff))
+                    # logging.debug(  field + "DiffRate  => " + str(key_diff_rate))
 
                 else:
                     pass
