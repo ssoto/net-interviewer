@@ -115,7 +115,6 @@ def append_field_from_ds(data, original_ds, destination_ds, field_list):
     }
 
     """
-
     for field in field_list: 
         for ident in data[destination_ds].keys():
             try :
