@@ -14,7 +14,8 @@ class Snmp_table_request:
     options are 
 
     """
-    def __init__ (self, server, port=161, community="public", snmp_version="2c", mib_name=None, oid_name=None, cmd_options=None):
+    def __init__ (self, server, port=161, community="public", snmp_version="2c", 
+        mib_name=None, oid_name=None, cmd_options=None):
         
         default_arguments = "-Cf", ",", "-Cl", "-CB", "-Ci", "-OX", "-Cb", "-Oe"
         
@@ -37,7 +38,7 @@ class Snmp_table_request:
         logging.info("new rquest created: "+ command_str)
 
     
-    def request(self, simulate=False):    
+    def request(self, simulate=False):
 
         self.__timestamp = get_current_time()
         logging.debug('timestamp local: %s' % self.__timestamp)

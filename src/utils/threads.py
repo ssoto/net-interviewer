@@ -2,20 +2,29 @@
 # -*- coding: utf-8 -*-
 
 import time
-import threading
-import logging
+from threading import Thread, Event
 import random
 
-class StoppableThread(threading.Thread):
+import logging
+logging.basicConfig( format='%(asctime)s - %(pathname)s:%(lineno)d : %(levelname)s  : %(message)s', 
+                     level=logging.DEBUG)
+
+class StoppableThread(Thread):
     """Thread class with a stop() method. The thread itself has to check
     regularly for the stopped() condition."""
 
-    def __init__(self, interval, job):
-        super(StoppableThread, self).__init__()
-        self.stop_event = threading.Event()
+    def __init__(self, group=None, target=None, name=None, args=(), kwargs=None, verbose=None):
+        
+        Thread.__init__( self, group=None, target=target, name=name, verbose=verbose)
+        
+        self.__kwargs = kwargs
+        self.__args = args
+        self.target = self.__dict__["_Thread__target"]
 
-        self.interval = interval
-        self.job = job
+        self.stop_event = Event()
+
+        self.interval = kwargs['interval']
+
 
     def stop(self):
         self.stop_event.set()
@@ -25,15 +34,17 @@ class StoppableThread(threading.Thread):
 
     def run(self):
 
-        logging.debug("running thread...")
-        self._remainning = self.interval
+        logging.debug("---- arg1: %s\n---- arg2: %s" %(self.__kwargs['arg1'], self.__kwargs['arg2']))
+
+        logging.debug("running thread %s" %self.name)
 
         while not self.stop_event.is_set():
 
             self.stop_event.wait(self.interval)
             if self.stopped():
                 return 0
-            self.job(self.name)
+            self.target(*self.__args, **self.__kwargs)
+
 
 if __name__ == "__main__":
     
@@ -41,11 +52,17 @@ if __name__ == "__main__":
 
     for i in range(0,10):
 
-        def job(name):
-            print "Hi, I'm %s and it's %s" %(name, time.ctime())
+        def job(*args, **kwargs):
 
-        r = random.randint(10,20)
-        t = StoppableThread(r, job)
+            print "Hi, I'm %s at %s" %(kwargs['name'], time.ctime())
+
+        r = random.randint(2,5)
+        t = StoppableThread( name="Thread-%s" %i,
+                             target=job, 
+                             kwargs={"arg1":"Buenos", 
+                                     "arg2":"desayuno",
+                                     "interval": r,
+                                     "name": "Fran"})
         t.start()
         thread_pool.append(t)
 

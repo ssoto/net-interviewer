@@ -4,61 +4,67 @@
 import threading
 import time
 from utils.config_parser import get_config
-from Queue import Queue
+from utils.threads import StoppableThread
 
 import logging
-logging.basicConfig( format='%(asctime)s - %(pathname)s:%(lineno)d : %(levelname)s  : %(message)s', 
-                     level=logging.DEBUG)
+logging.basicConfig( 
+    format='%(asctime)s - %(pathname)s:%(lineno)d : %(levelname)s  : %(message)s', 
+    level=logging.DEBUG)
 
-class SNMP_table_job:
+class SNMP_table_thread(StoppableThread, Snmp_table_request):
 
-    def __init__(self, name,host,port,snmp_community,mib,oids, interval):
-        arguments = locals()
-        self.name = name
-        self.interval = int(interval)
+    def __init__(self, name, host, port, community, snmp_version, mib, oid, interval):
+        Snmp_table_request.__init__(server=host, port=port, community=community, 
+            snmp_version=snmp_version, mib_name=mib, oid_name=oid)
+        StoppableThread.__init__(interval, self.get_json_reply)
 
-    def start(self):
+    def 
+   
+def JAJJAJJJAJAJAJJAJAJA (request, ):
+    data_dict = { }
 
-        self.__timer = threading.Timer(self.interval, self.task).start()
+    # get all OIDs dicts
+    for oid in args.oids:
 
-    def stop(self):
-        if hasattr(self, "__timer") and self.__timer:
-            self.__timer.stop()
+        OID_req = Snmp_table_request( server = args.server, 
+                                      community = args.community, 
+                                      snmp_version = args.snmp_version,
+                                      port = args.port,
+                                      mib_name = args.mib_name, 
+                                      oid_name = oid)
+        try:
+            OID_req.request()
+        except Exception as excep:
+            logging.error("Error on request " + args.mib_name + '::' + oid)
+            logging.error(repr(excep))
+            break
+        table_dict = OID_req.get_json_reply(args.timestamp_field_name)
 
-    def __str__(self):
-        import pprint
-        pprint.pprint(self.attributes)
-
-
-    def task(self):
-        logging.debug("Task " + self.name + " is working!")
-        self.__timer = threading.Timer(self.interval, self.task).start()
-
+    return data_dict
 
 if __name__ == "__main__":
 
     config_dict = get_config('./net_interviewer.conf')
 
     devices_config =  { k:v for (k,v) 
-            in config_dict.iteritems()
-            if "Daemon-device" in k}
+            in config_dict.iteritems() if "Daemon-device" in k}
 
     task_list = []
 
     for config in  devices_config.values():
+        for oid in [item.strip() for item in config['oids'].split(',')]:
+            task = SNMP_table_thread( name=config['name'],
+                                      host=config['device'],
+                                      port=config['port'],
+                                      snmp_community=config['community'],
+                                      mib=config['mib'],
+                                      oid=oid,
+                                      interval=int(config['interval']))
 
-        task = SNMP_table_job( name=config['name'],
-                              host=config['device'],
-                              port=config['port'],
-                              snmp_community=config['community'],
-                              mib=config['mib'],
-                              oids=[item.strip() for item in config['oids'].split(',')],
-                              interval=int(config['interval']))
+            logging.debug("created job %s  with interval %s" %(task.name, task.interval ))
 
-        logging.debug("created job %s  with interval %s" %(task.name, task.interval ))
-
-        task_list.append(task)
-        task.start()
+            task_list.append(task)
+            task.start()
 
     try:
         while True:
@@ -67,7 +73,8 @@ if __name__ == "__main__":
         logging.debug("trying exit...")
         for task in task_list:
             task.stop()
-            logging.debug("stopping job %s  with interval %s" %(task.name, task.interval ))
+            logging.debug("stopping job %s  with interval %s"
+                 %(task.name, task.interval ))
 
 
 
