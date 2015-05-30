@@ -17,26 +17,27 @@ class SnmpTableRequest:
     options are 
 
     """
-    def __init__ (self, server, port=161, community="public", snmp_version="2c", mib_name=None, oid=None, cmd_options=None):
+    def __init__ (self, device, port=161, community="public", snmp_version="2c", mib=None, oid=None, cmd_options=None):
         
         default_arguments = "-Cf", ",", "-Cl", "-CB", "-Ci", "-OX", "-Cb", "-Oe"
         
-        self.server = server
+        self.device = device
         self.port = int(port)
         self.community = community
         self.snmp_version = snmp_version
-        self.mib_name = mib_name
+        self.mib = mib
         self.oid_name = oid
         self.__cmd = ["snmptable",
                      "-v",
                      snmp_version,
                      "-c",
                      community, 
-                     server]
+                     device]
 
         self.__timestamp_field_name = "logTimestamp"
         self.__cmd.extend(default_arguments)
-        self.__cmd.append(self.mib_name + ":" + self.oid_name)
+        self.__cmd.append("%s:%s" %(self.mib, self.oid_name))
+        
         command_str = ' '.join(map(str, self.__cmd))
         logging.info("new request created: \n\t%s" % command_str)
 
@@ -121,4 +122,9 @@ class SnmpTableRequest:
         return result
 
 
+class SnmpJoinedTableRequest(SnmpTableRequest):
 
+    def __init__(self, device, port=161, community="public", snmp_version="2c", mib=None, oid=None, cmd_options=None, join_oid=None, join_extra=None):
+        
+        SnmpTableRequest.__init__(self, device=device, port=port, community=community, snmp_version=snmp_version, mib=mib, oid=oid, cmd_options=cmd_options)
+        pass

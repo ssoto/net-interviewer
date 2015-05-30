@@ -7,29 +7,79 @@ logging.basicConfig( format='%(asctime)s - %(pathname)s:%(lineno)d : %(levelname
                      level=logging.DEBUG)
 
 
-def get_config(config_file_path):
-    
-    config = ConfigParser.ConfigParser()
-    config.read(config_file_path)
-    options_dict = {}
-    
-    for section in config.sections():
-        section_options = {}
-        for option in config.options(section):
-            section_options[option] = config.get(section, option)
-        options_dict[section] = section_options
-    return options_dict
+SNMP_TABLES = 'SNMP-table'
+SNMP_JOIN_TABLE = 'SNMP-join-table'
 
-def exist_section(config_file_path, section):
-    config = ConfigParser.ConfigParser()
-    config.read(config_file_path)
-    return config.has_section(section)
+class ConfigObject:
+    
+    def __init__(self, config_file_path):
+        cfg = ConfigParser.ConfigParser()
+        cfg.read(config_file_path)
+        self.__options_dict = {}
+        
+        self.config = {
+            SNMP_TABLES : [],
+            SNMP_JOIN_TABLE : []
+        }
+
+        for section in cfg.sections():
+            if section.startswith('SNMP-table-'):
+                element = {
+                    'name' : cfg.get(section, 'name'),
+                    'device' : cfg.get(section, 'device'),
+                    'port' : cfg.getint(section, 'port'),
+                    'interval' : cfg.getint(section, 'interval'),
+                    'community' : cfg.get(section, 'community'),
+                    'mib' : cfg.get(section, 'mib'),
+                    'oid' : cfg.get(section, 'oid'),
+                    'incremental_fields': self.get_extra_fields(cfg, section, 'incremental_fields')
+                }
+
+                self.config[SNMP_TABLES].append(element)
+
+            elif section.startswith('SNMP-join-table'):
+                element = {
+                    'name' : cfg.get(section, 'name'),
+                    'device' : cfg.get(section, 'device'),
+                    'port' : cfg.getint(section, 'port'),
+                    'interval' : cfg.getint(section, 'interval'),
+                    'community' : cfg.get(section, 'community'),
+                    'mib' : cfg.get(section, 'mib'),
+                    'oid' : cfg.get(section, 'oid'),
+                    'join_oid' : cfg.get(section, 'join_oid'),
+                    'join_extra' : cfg.get(section, 'join_extra'),
+                    'incremental_fields': self.get_extra_fields(cfg, section, 'incremental_fields')
+                }
+                self.config[SNMP_JOIN_TABLE].append(element)
+            else:
+                logging.error('undefined field in configuration file: %s' %section)
+                raise AttributeError('error field in configuration file: %s' %section)
+
+    def get_extra_fields(self, cfg, section, name):
+        """
+            (...)
+            incremental_fields = field1, field2, field3
+            (...)
+        """
+        raw = cfg.get(section,name)
+        return [field.strip() for field in raw.split(',')]
+
+
+    def get_requests(self):
+        return list(self.config[SNMP_TABLES] + self.config[SNMP_JOIN_TABLE])
+
+    def get_snmp_table_requests(self):
+
+        return self.config[SNMP_TABLES]
+
+    def get_snmp_join_table_requests(self):
+        
+        return self.config[SNMP_JOIN_TABLE]        
 
 
 if __name__ == "__main__":
     import pprint
-    config_file = './net_interviewer.conf'
-    section = 'Others'
-    logging.debug( "Exist section '%s' => %s" %(section, exist_section(config_file, section)))
-    all_stuff = get_config( config_file)
-    pprint.pprint(all_stuff)
+    cf = ConfigObject('./net_interviewer.conf')
+    import ipdb; ipdb.set_trace()
+    cf.get_prop('Data', 'timestamp_field_name')
+    print cf.get_requests()
