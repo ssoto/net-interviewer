@@ -6,12 +6,11 @@ import time
 import json
 import os
 from pprint import pprint
-from snmp.table import Snmp_table_request
+from snmp.table import SnmpTableRequest
 import sys
 
 from logstash.udp import Sender
 from utils.ip_manager import get_decimal_ip
-from utils.color_print import error, success
 
 import logging
 logging.basicConfig( format='%(asctime)s - %(pathname)s:%(lineno)d : %(levelname)s  : %(message)s', 
@@ -166,7 +165,7 @@ if __name__ == '__main__':
         # get all OIDs dicts
         for oid in args.oids:
 
-            OID_req = Snmp_table_request( server = args.server, 
+            OID_req = SnmpTableRequest( server = args.server, 
                                           community = args.community, 
                                           snmp_version = args.snmp_version,
                                           port = args.port,

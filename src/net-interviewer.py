@@ -1,8 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-from snmp.table import Snmp_table_request
-from snmp.data_manager import DataManager
+from snmp.table import SnmpTableRequest
 import threading
 import time
 from utils.config_parser import get_config
@@ -39,7 +38,7 @@ def generate_config(config_file_path):
 
 def task( server, community, port, mib_name, oid):
 
-    OID_req = Snmp_table_request( server=server, mib_name=mib_name, community=community,oid=oid, port=port)
+    OID_req = SnmpTableRequest( server=server, mib_name=mib_name, community=community,oid=oid, port=port)
     try:
         OID_req.request()
     except Exception as excep:
@@ -53,7 +52,6 @@ if __name__ == "__main__":
 
     (config, requests) = generate_config('./net_interviewer.conf')
 
-    data_manager = DataManager()
     task_list = []
     
     for request in requests:

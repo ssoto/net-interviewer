@@ -10,7 +10,7 @@ import StringIO
 
 from utils.time import get_current_time
 
-class Snmp_table_request:
+class SnmpTableRequest:
     """
     Example of how could be a generic snmp table request
 

@@ -5,13 +5,12 @@ import argparse
 import json
 from pprint import pprint
 import os
-from snmp.table import Snmp_table_request
+from snmp.table import SnmpTableRequest
 import sys
 import time
 
 from logstash.udp import Sender
 from utils.ip_manager import get_decimal_ip
-from utils.color_print import error, success
 
 import logging
 logging.basicConfig( format='%(asctime)s - %(pathname)s:%(lineno)d : %(levelname)s  : %(message)s', 
@@ -66,7 +65,7 @@ def parse_args():
         
     if hasattr(args_parsed, 'logstash_host') and args_parsed.logstash_host:
         if not hasattr(args_parsed, 'logstash_port') and args_parsed.logstash_port: 
-            error("Logstash host and port are needed")
+            logging.error("Logstash host and port are needed")
             sys.exit(0)
 
     return args_parsed
@@ -139,7 +138,7 @@ def write_on_file (file_name, object_data):
             with open(file_name, 'a') as outfile:
                 json.dump(object_data, outfile, indent=2)
         except IOError as e:
-            error("Error with file to write request output: " + file_name)
+            logging.error("Error with file to write request output: " + file_name)
             sys.exit(0)
    
 
@@ -162,7 +161,7 @@ if __name__ == '__main__':
         # get all OIDs dicts
         for oid in args.oids:
 
-            OID_req = Snmp_table_request( server = args.server, 
+            OID_req = SnmpTableRequest( server = args.server, 
                                           community = args.community, 
                                           snmp_version = args.snmp_version,
                                           port = args.port,
