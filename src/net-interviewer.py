@@ -8,9 +8,9 @@ import time
 from utils.config_parser import ConfigObject
 from utils.threads import StoppableThread
 from pprint import pprint
-from logstash.udp import Sender
+import re
 
-from data.redis_manager import RedisQueue
+from logstash.udp import Sender
 
 import logging
 logging.basicConfig( 
@@ -19,12 +19,22 @@ logging.basicConfig(
 
 def task ( **kwargs ):
     
-    task = SnmpTableFactory.create_request(kwargs)
+    job = SnmpTableFactory.create_request(kwargs)
+    try:
+        job.request()
+    except Exception as e:
+        logging.error('error in call to %s: %s' %(job.device, repr(e)))
+        return
+    logging.debug('request done succesfully to %s: %s' 
+        %(job.device, str(job.get_json_reply())[0:20]))
+
+
     
 
 def old_task( **kwargs ):
 
-    OID_req = SnmpTableRequest( server=server, mib_name=mib_name, community=community,oid=oid, port=port)
+    OID_req = SnmpTableRequest( server=server, mib_name=mib_name, 
+        community=community,oid=oid, port=port)
     try:
         OID_req.request()
     except Exception as excep:
@@ -62,5 +72,3 @@ if __name__ == "__main__":
             task.stop()
             logging.debug("stopping job %s  with interval %s"
                  %(task.name, task.interval ))
-
-

@@ -19,7 +19,8 @@ class SnmpTableFactory(object):
                                           mib=config['mib'],
                                           oid=config['oid'],
                                           join_oid=config['join_oid'],
-                                          join_extra=config['join_extra']
+                                          join_extra=config['join_extra'],
+                                          field_to_join=config['field_to_join']
                                            )
         else:
             logging.debug('created new SnmpTable request')
@@ -28,9 +29,3 @@ class SnmpTableFactory(object):
                                     community=config['community'],
                                     mib=config['mib'],
                                     oid=config['oid'])
-
-    def generate_request(conf):
-        if x:
-            return SnmpTableRequest()
-        else:
-            pass

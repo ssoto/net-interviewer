@@ -47,7 +47,8 @@ class ConfigObject:
                     'mib' : cfg.get(section, 'mib'),
                     'oid' : cfg.get(section, 'oid'),
                     'join_oid' : cfg.get(section, 'join_oid'),
-                    'join_extra' : cfg.get(section, 'join_extra'),
+                    'field_to_join': cfg.get(section, 'field_to_join'),
+                    'join_extra' : cfg.get(section, 'join_extra').split(','),
                     'incremental_fields': self.get_extra_fields(cfg, section, 'incremental_fields')
                 }
                 self.config[SNMP_JOIN_TABLE].append(element)

@@ -10,15 +10,16 @@ import StringIO
 
 from utils.time import get_current_time
 
-class SnmpTableRequest:
+class SnmpTableRequest(object):
     """
     Example of how could be a generic snmp table request
 
     options are 
 
     """
-    def __init__ (self, device, port=161, community="public", snmp_version="2c", mib=None, oid=None, cmd_options=None):
-        
+    def __init__ (self, device, port=161, community="public", snmp_version="2c", 
+        mib=None, oid=None, cmd_options=None):
+
         default_arguments = "-Cf", ",", "-Cl", "-CB", "-Ci", "-OX", "-Cb", "-Oe"
         
         self.device = device
@@ -45,11 +46,9 @@ class SnmpTableRequest:
     def request(self, simulate=False):
 
         self.__timestamp = get_current_time()
-        try:
-            self.raw_output = subprocess.check_output(self.__cmd)
-        except Exception as call_error:
-            logging.error("Error doing request")
-            raise
+    
+        self.raw_output = subprocess.check_output(self.__cmd)
+        
 
     def get_json_reply(self, index_field_name=None):
         """
@@ -60,11 +59,14 @@ class SnmpTableRequest:
         if hasattr(self, 'json_output'):
             return self.json_output
         elif not hasattr(self, 'raw_output'):
-            raise AttributeError('request output has not been established... Request has not been done or failed')
+            raise AttributeError('request output has not been established... '
+                'Request has not been done or failed')
         else:
-            self.data_dict = self.parse_csv_string(self.raw_output,
+
+            data_dict = self.parse_csv_string(self.raw_output,
                                                    index_field_name)
-            return self.data_dict
+
+            return data_dict
 
     def parse_csv_string(self, scsv, index_field_name=None):
 
@@ -74,7 +76,7 @@ class SnmpTableRequest:
 
         reader = csv.reader(f, delimiter=',')
 
-        # drop first two lines, appended by snmptable command and useless for us
+        # drop first two lines, appended by snmptable command and useless 4 us
         reader.next()
         reader.next()
 
@@ -124,7 +126,44 @@ class SnmpTableRequest:
 
 class SnmpJoinedTableRequest(SnmpTableRequest):
 
-    def __init__(self, device, port=161, community="public", snmp_version="2c", mib=None, oid=None, cmd_options=None, join_oid=None, join_extra=None):
+    def __init__(self, device, port=161, community="public", snmp_version="2c", 
+        mib=None, oid=None, cmd_options=None, join_oid=None, field_to_join=None,
+         join_extra=None):
         
-        SnmpTableRequest.__init__(self, device=device, port=port, community=community, snmp_version=snmp_version, mib=mib, oid=oid, cmd_options=cmd_options)
-        pass
+        super(SnmpJoinedTableRequest, self).__init__(device=device, port=port, 
+            community=community, snmp_version=snmp_version, mib=mib, oid=oid, 
+            cmd_options=cmd_options)
+
+        self.__joined_table_req = SnmpTableRequest(device=device, port=port, 
+            community=community, snmp_version=snmp_version, mib=mib, 
+            oid=join_oid)
+
+        
+        self.__join_extra = [element.strip() for element in join_extra]
+
+        
+    def request(self, simulate=False):
+        """
+
+        """
+        super(SnmpJoinedTableRequest, self).request()
+        self.__joined_table_req.request()
+
+
+    def get_json_reply(self):
+
+        original = super(SnmpJoinedTableRequest, self).get_json_reply()
+        join = self.__joined_table_req.get_json_reply()
+
+        for index in original:
+            
+            for k in self.__join_extra:
+                try:
+                    value = join[index][k]
+                    original[index][k] = value
+                except KeyError as e:
+                    logging.info("device %s not present in statistic dataset: %s" %( index, repr(e)))
+                    pass
+        
+        return original
+
