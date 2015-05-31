@@ -6,7 +6,7 @@ import logging
 import re
 import socket
 
-from utils.time import get_diff_between_str_times
+from utils.time import times_str_diff
 
 class Sender():
 
@@ -65,7 +65,7 @@ class Sender():
                     dictionary[element_key][field+'Diff'] = key_diff
 
                     try:
-                        time_diff = get_diff_between_str_times(dictionary[element_key][timestamp_field],
+                        time_diff = times_str_diff(dictionary[element_key][timestamp_field],
                                                                self.__memory_dict[element_key][timestamp_field])
                         key_diff_rate = key_diff / time_diff
 

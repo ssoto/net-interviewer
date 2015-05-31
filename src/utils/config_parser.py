@@ -63,7 +63,11 @@ class ConfigObject:
             (...)
         """
         raw = cfg.get(section,name)
-        return [field.strip() for field in raw.split(',')]
+        result = [field.strip() for field in raw.split(',')]
+        if result:
+            return result
+        else:
+            return None
 
 
     def get_requests(self):

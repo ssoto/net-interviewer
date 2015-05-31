@@ -45,9 +45,10 @@ class SnmpTableRequest(object):
     
     def request(self, simulate=False):
 
-        self.__timestamp = get_current_time()
     
         self.raw_output = subprocess.check_output(self.__cmd)
+        
+        self.__timestamp = get_current_time()
         
 
     def get_json_reply(self, index_field_name=None):

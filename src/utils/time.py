@@ -20,7 +20,7 @@ def parse_datetime(date_str, date_format_str=None):
     return datetime.datetime.strptime(date_str, date_format_str)
 
 
-def get_diff_between_str_times( first_time_str, second_time_str):
+def times_str_diff( first_time_str, second_time_str):
 
     date_1 = parse_datetime(first_time_str)
     date_2 = parse_datetime(second_time_str)

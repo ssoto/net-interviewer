@@ -6,9 +6,10 @@ from snmp.table import SnmpTableRequest
 from snmp.factory import SnmpTableFactory
 import time
 from utils.config_parser import ConfigObject
-from utils.threads import StoppableThread
+from utils.threads import StoppableTimerThread,ReaderThread
 from pprint import pprint
 import re
+from Queue import Queue
 
 from logstash.udp import Sender
 
@@ -17,32 +18,27 @@ logging.basicConfig(
     format='%(asctime)s - %(pathname)s:%(lineno)d : %(levelname)s  : %(message)s', 
     level=logging.DEBUG)
 
-def task ( **kwargs ):
-    
-    job = SnmpTableFactory.create_request(kwargs)
+def task ( queue, rq_config ):
+
+    job = SnmpTableFactory.create_request(rq_config)
     try:
         job.request()
     except Exception as e:
         logging.error('error in call to %s: %s' %(job.device, repr(e)))
         return
-    logging.debug('request done succesfully to %s: %s' 
-        %(job.device, str(job.get_json_reply())[0:20]))
+    
+    data = job.get_json_reply()
 
+    if rq_config['incremental_fields']:
+       incremental_fields = rq_config['incremental_fields']
+    else:
+        incremental_fields = None
+
+    queue.put((data, incremental_fields))
 
     
-
-def old_task( **kwargs ):
-
-    OID_req = SnmpTableRequest( server=server, mib_name=mib_name, 
-        community=community,oid=oid, port=port)
-    try:
-        OID_req.request()
-    except Exception as excep:
-        logging.error("Error on request " + mib_name + '::' + oid)
-        logging.error(repr(excep))
-        return 1
-
-    OID_req.get_json_reply()
+    logging.debug('request done succesfully to %s: %s' 
+        %(job.device, str(data)[0:20]))
 
 
 if __name__ == "__main__":
@@ -50,16 +46,23 @@ if __name__ == "__main__":
     cf = ConfigObject('./net_interviewer.conf')
 
     task_list = []
+    queue = Queue()
+
+    r_th = ReaderThread(queue)
+    r_th.start()
+
+    task_list.append(r_th)
+
 
     # create producers threads
-    for request in cf.get_requests():
-                
-        th = StoppableThread(interval=request['interval'], 
-                             target=task,
-                             kwargs=request)
-        
+    for rq_config in cf.get_requests():
+        th = StoppableTimerThread(interval=rq_config['interval'], 
+                                 target=task,
+                                 args=(queue, rq_config))
         th.start()
         task_list.append(th)
+
+
 
     try:
         while True:
@@ -70,5 +73,5 @@ if __name__ == "__main__":
 
         for task in task_list:
             task.stop()
-            logging.debug("stopping job %s  with interval %s"
-                 %(task.name, task.interval ))
+            logging.debug("stopping job %s"
+                 %(task.name ))
