@@ -59,7 +59,7 @@ class Memory(object):
         return (self.__memory[instance_name][field],
                 self.__memory[instance_name][self.__timestamp_field_name])
 
-    def add_instance(self, instance_name, value):
+    def set_instance(self, instance_name, value):
         self.__memory[instance_name] = value
 
 
@@ -120,8 +120,10 @@ class ReaderThread(Thread):
 
 
             else:                
-                self.__memory.add_instance(key, elements[key])
                 elements_to_del.append(key)
+            
+            # update memory
+            self.__memory.set_instance(key, elements[key])
 
             
         for key in elements_to_del:
