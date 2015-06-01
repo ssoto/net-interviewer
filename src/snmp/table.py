@@ -8,7 +8,7 @@ import re
 import subprocess
 import StringIO
 
-from utils.time import get_current_time
+from utils.timeutils import get_current_time
 
 class SnmpTableRequest(object):
     """

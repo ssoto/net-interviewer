@@ -29,3 +29,5 @@ class SnmpTableFactory(object):
                                     community=config['community'],
                                     mib=config['mib'],
                                     oid=config['oid'])
+
+    

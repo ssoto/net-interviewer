@@ -13,8 +13,8 @@ SNMP_JOIN_TABLE = 'SNMP-join-table'
 class ConfigObject:
     
     def __init__(self, config_file_path):
-        cfg = ConfigParser.ConfigParser()
-        cfg.read(config_file_path)
+        self.cfg = ConfigParser.ConfigParser()
+        self.cfg.read(config_file_path)
         self.__options_dict = {}
         
         self.config = {
@@ -22,47 +22,57 @@ class ConfigObject:
             SNMP_JOIN_TABLE : []
         }
 
-        for section in cfg.sections():
+        for section in self.cfg.sections():
             if section.startswith('SNMP-table-'):
                 element = {
-                    'name' : cfg.get(section, 'name'),
-                    'device' : cfg.get(section, 'device'),
-                    'port' : cfg.getint(section, 'port'),
-                    'interval' : cfg.getint(section, 'interval'),
-                    'community' : cfg.get(section, 'community'),
-                    'mib' : cfg.get(section, 'mib'),
-                    'oid' : cfg.get(section, 'oid'),
-                    'incremental_fields': self.get_extra_fields(cfg, section, 'incremental_fields')
+                    'name' : self.cfg.get(section, 'name'),
+                    'device' : self.cfg.get(section, 'device'),
+                    'port' : self.cfg.getint(section, 'port'),
+                    'interval' : self.cfg.getint(section, 'interval'),
+                    'community' : self.cfg.get(section, 'community'),
+                    'mib' : self.cfg.get(section, 'mib'),
+                    'oid' : self.cfg.get(section, 'oid'),
+                    'incremental_fields': self.get_extra_fields(section, 'incremental_fields')
                 }
 
                 self.config[SNMP_TABLES].append(element)
 
             elif section.startswith('SNMP-join-table'):
                 element = {
-                    'name' : cfg.get(section, 'name'),
-                    'device' : cfg.get(section, 'device'),
-                    'port' : cfg.getint(section, 'port'),
-                    'interval' : cfg.getint(section, 'interval'),
-                    'community' : cfg.get(section, 'community'),
-                    'mib' : cfg.get(section, 'mib'),
-                    'oid' : cfg.get(section, 'oid'),
-                    'join_oid' : cfg.get(section, 'join_oid'),
-                    'field_to_join': cfg.get(section, 'field_to_join'),
-                    'join_extra' : cfg.get(section, 'join_extra').split(','),
-                    'incremental_fields': self.get_extra_fields(cfg, section, 'incremental_fields')
+                    'name' : self.cfg.get(section, 'name'),
+                    'device' : self.cfg.get(section, 'device'),
+                    'port' : self.cfg.getint(section, 'port'),
+                    'interval' : self.cfg.getint(section, 'interval'),
+                    'community' : self.cfg.get(section, 'community'),
+                    'mib' : self.cfg.get(section, 'mib'),
+                    'oid' : self.cfg.get(section, 'oid'),
+                    'join_oid' : self.cfg.get(section, 'join_oid'),
+                    'field_to_join': self.cfg.get(section, 'field_to_join'),
+                    'join_extra' : self.cfg.get(section, 'join_extra').split(','),
+                    'incremental_fields': self.get_extra_fields( section, 'incremental_fields')
                 }
                 self.config[SNMP_JOIN_TABLE].append(element)
-            else:
-                logging.error('undefined field in configuration file: %s' %section)
-                raise AttributeError('error field in configuration file: %s' %section)
+            
 
-    def get_extra_fields(self, cfg, section, name):
+    def get_output_section(self):
+        """ 
+        Return the 'Output' section of the config file
+        """
+        section = 'Output'
+        return (
+            self.cfg.get(section, 'server'),
+            self.cfg.getint(section, 'port')
+        )
+
+
+
+    def get_extra_fields(self, section, name):
         """
             (...)
             incremental_fields = field1, field2, field3
             (...)
         """
-        raw = cfg.get(section,name)
+        raw = self.cfg.get(section,name)
         result = [field.strip() for field in raw.split(',')]
         if result:
             return result

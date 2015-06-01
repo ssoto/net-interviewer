@@ -6,7 +6,7 @@ from snmp.table import SnmpTableRequest
 from snmp.factory import SnmpTableFactory
 import time
 from utils.config_parser import ConfigObject
-from utils.threads import StoppableTimerThread,ReaderThread
+from utils.threads import StoppableTimerThread, ReaderThread, SenderThread
 from pprint import pprint
 import re
 from Queue import Queue
@@ -15,8 +15,9 @@ from logstash.udp import Sender
 
 import logging
 logging.basicConfig( 
-    format='%(asctime)s - %(pathname)s:%(lineno)d : %(levelname)s  : %(message)s', 
+    format='%(asctime)s - %(pathname)s:%(lineno)d - %(threadName)s : %(levelname)s  : %(message)s', 
     level=logging.DEBUG)
+
 
 def task ( queue, rq_config ):
 
@@ -36,7 +37,6 @@ def task ( queue, rq_config ):
 
     queue.put((data, incremental_fields))
 
-    
     logging.debug('request done succesfully to %s: %s' 
         %(job.device, str(data)[0:20]))
 
@@ -47,18 +47,25 @@ if __name__ == "__main__":
 
     task_list = []
     queue = Queue()
+    send_queue = Queue()
 
-    r_th = ReaderThread(queue)
+    r_th = ReaderThread(queue, send_queue, name='ReaderThread')
     r_th.start()
+    
+    output_config = cf.get_output_section()
+    s_th = SenderThread(send_queue, output_config, name='SenderThread')
+    s_th.start()
 
     task_list.append(r_th)
+    task_list.append(s_th)
 
 
     # create producers threads
     for rq_config in cf.get_requests():
         th = StoppableTimerThread(interval=rq_config['interval'], 
                                  target=task,
-                                 args=(queue, rq_config))
+                                 name='%s-RequestThread' %rq_config['name'],
+                                 args=(queue, rq_config),)
         th.start()
         task_list.append(th)
 
