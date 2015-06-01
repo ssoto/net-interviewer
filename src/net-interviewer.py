@@ -19,9 +19,12 @@ def parse_args():
 
     parser = argparse.ArgumentParser()
 
-    parser.add_argument('-p', '--port', dest='port',
-                        default='161', action='store',
-                        help='port to send snmp command')
+    parser.add_argument('-c', '--config', dest='config_path',
+                        default='./net_interviewer.conf', action='store',
+                        help='the file config path to read')
+
+    return parser.parse_args()
+
 
 def task ( queue, rq_config ):
 
@@ -47,9 +50,9 @@ def task ( queue, rq_config ):
 
 if __name__ == "__main__":
 
+    args = parse_args()
 
-
-    cf = ConfigObject('./net_interviewer.conf')
+    cf = ConfigObject(args.config_path)
 
     task_list = []
     queue = Queue()
