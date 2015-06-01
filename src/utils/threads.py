@@ -2,15 +2,13 @@
 # -*- coding: utf-8 -*-
 
 import json
-from time import sleep as time_sleep
-from threading import Thread, Event
-import random
 import re
 import socket
+from time import sleep as time_sleep
+from threading import Thread, Event
 from Queue import Empty
 
 from utils.timeutils import times_str_diff
-from logstash.udp import Sender
 
 import logging
 logging.basicConfig( format='%(asctime)s - %(pathname)s:%(lineno)d : %(levelname)s  : %(message)s', 
@@ -46,6 +44,7 @@ class StoppableTimerThread(Thread):
                 return 0
             self.target(*self.__args)
 
+
 class Memory(object):
 
     def __init__(self):
@@ -65,8 +64,6 @@ class Memory(object):
 
     def get_timestamp(self, instance_name):
         return self.__memory[instance_name][self.__timestamp_field_name]
-
-
 
 
 class ReaderThread(Thread):
@@ -179,6 +176,7 @@ class ReaderThread(Thread):
 class SenderThread(Thread):
 
     def __init__( self, queue, cfg=None, name=None):
+
         super(SenderThread, self).__init__(name=name)
 
         self.queue = queue
@@ -186,6 +184,8 @@ class SenderThread(Thread):
 
         if cfg:
             (self.server, self.port) = cfg
+        else:
+            (self.server, self.port) = ('127.0.0.1', 8000)
 
 
     def stop(self):
@@ -223,34 +223,3 @@ class SenderThread(Thread):
             else:
                 logging.debug("***** send message %s ... " %str(message)[0:50])
 
-
-
-if __name__ == "__main__":
-    
-    thread_pool = []
-
-    for i in range(0,10):
-
-        def job(*args, **kwargs):
-
-            print "Hi, I'm %s at %s" %(kwargs['name'], time.ctime())
-
-        r = random.randint(2,5)
-        t = StoppableThread( name="Thread-%s" %i,
-                             target=job, 
-                             interval = r,
-                             kwargs={"arg1":"Buenos", 
-                                     "arg2":"desayuno",
-                                     "name": "Fran"})
-        t.start()
-        thread_pool.append(t)
-
-    try:
-        while True:
-            time_sleep(0.5)
-            logging.debug("waiting...")
-    except KeyboardInterrupt as e:
-        for thread in thread_pool:
-            logging.debug("killing thread-%s" %thread.name)
-            thread.stop()
-        logging.error("Exiting!")

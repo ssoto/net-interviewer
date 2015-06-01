@@ -1,23 +1,27 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
+import argparse
+import time
+from Queue import Queue
 
 from snmp.table import SnmpTableRequest
 from snmp.factory import SnmpTableFactory
-import time
 from utils.config_parser import ConfigObject
 from utils.threads import StoppableTimerThread, ReaderThread, SenderThread
-from pprint import pprint
-import re
-from Queue import Queue
-
-from logstash.udp import Sender
 
 import logging
 logging.basicConfig( 
     format='%(asctime)s - %(pathname)s:%(lineno)d - %(threadName)s : %(levelname)s  : %(message)s', 
     level=logging.DEBUG)
 
+def parse_args():
+
+    parser = argparse.ArgumentParser()
+
+    parser.add_argument('-p', '--port', dest='port',
+                        default='161', action='store',
+                        help='port to send snmp command')
 
 def task ( queue, rq_config ):
 
@@ -42,6 +46,8 @@ def task ( queue, rq_config ):
 
 
 if __name__ == "__main__":
+
+
 
     cf = ConfigObject('./net_interviewer.conf')
 

@@ -91,10 +91,3 @@ class ConfigObject:
         
         return self.config[SNMP_JOIN_TABLE]        
 
-
-if __name__ == "__main__":
-    import pprint
-    cf = ConfigObject('./net_interviewer.conf')
-    import ipdb; ipdb.set_trace()
-    cf.get_prop('Data', 'timestamp_field_name')
-    print cf.get_requests()
