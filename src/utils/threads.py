@@ -9,6 +9,7 @@ from threading import Thread, Event
 from Queue import Empty
 
 from utils.timeutils import times_str_diff
+from utils.ip_manager import get_decimal_ip
 
 import logging
 logging.basicConfig( format='%(asctime)s - %(pathname)s:%(lineno)d : %(levelname)s  : %(message)s', 
@@ -75,6 +76,7 @@ class ReaderThread(Thread):
         self.queue = queue
         self.send_queue = send_queue
         self.__memory = Memory()
+        self.__mapping = { 'IpAddress': get_decimal_ip}
 
 
     def stop(self):
@@ -89,7 +91,7 @@ class ReaderThread(Thread):
 
         new_elements = {}
         elements_to_del = []
-        # 1st try
+        
         for key in elements:
 
             if self.__memory.exist(key):
@@ -153,12 +155,21 @@ class ReaderThread(Thread):
         ts_diff = times_str_diff(new_ts, old_ts)
         elements[instance_name]['DeltaTime'] = ts_diff
 
+    def __apply_map(self, data):
+
+        for element_k in data:
+            for map_k in self.__mapping.keys():
+                if data[element_k].has_key(map_k):
+                    data[element_k][map_k] = self.__mapping[map_k](data[element_k][map_k])
 
     def run(self):
 
         while not self.stop_event.is_set():
             try:
                 (elements, incremental_fields) = self.queue.get(True, 1)
+
+                if self.__mapping:
+                    self.__apply_map(elements)
 
                 if incremental_fields:
                     self.do_increments(elements, incremental_fields)
