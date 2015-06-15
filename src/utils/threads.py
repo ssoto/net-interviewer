@@ -19,9 +19,11 @@ class StoppableTimerThread(Thread):
     """Thread class with a stop() method. The thread itself has to check
     regularly for the stopped() condition."""
 
-    def __init__(self, interval=None, group=None, target=None, name=None, args=(), kwargs=None, verbose=None):
+    def __init__(self, interval=None, group=None, target=None, name=None, 
+        args=(), kwargs=None, verbose=None):
         
-        Thread.__init__( self, group=None, target=target, name=name, verbose=verbose)
+        Thread.__init__( self, group=None, target=target, name=name, 
+            verbose=verbose)
         
         self.__args = args
         self.target = self.__dict__["_Thread__target"]
@@ -76,12 +78,10 @@ class ReaderThread(Thread):
         self.queue = queue
         self.send_queue = send_queue
         self.__memory = Memory()
-        self.__mapping = { 'IpAddress': get_decimal_ip}
-
+        self.__mapping = { 'IpAddress': get_decimal_ip }
 
     def stop(self):
         self.stop_event.set()
-
 
     def stopped(self):
         return self.stop_event.is_set()
@@ -162,11 +162,22 @@ class ReaderThread(Thread):
                 if data[element_k].has_key(map_k):
                     data[element_k][map_k] = self.__mapping[map_k](data[element_k][map_k])
 
+
+    def __add_custom_fields(self, elements, custom_data):
+        for item in elements:
+            for field in custom_data:
+                elements[item][field] = custom_data[field]
+                #logging.debug('added custom field %s => %s to data' %(field, custom_data[field]))
+
+
     def run(self):
 
         while not self.stop_event.is_set():
             try:
-                (elements, incremental_fields) = self.queue.get(True, 1)
+                product = self.queue.get(True, 1)
+
+                (elements, incremental_fields, custom_data) = product
+
 
                 if self.__mapping:
                     self.__apply_map(elements)
@@ -174,11 +185,14 @@ class ReaderThread(Thread):
                 if incremental_fields:
                     self.do_increments(elements, incremental_fields)
                 
+                if custom_data:
+                    self.__add_custom_fields(elements, custom_data)
+
                 if elements:
                     logging.debug('***** adding elements to send_queue')
                     self.send_queue.put(elements)
                 else:
-                    logging.debug('nothing to send...')
+                    logging.debug('no historical data, ...nothing to send')
 
             except Empty:
                 pass

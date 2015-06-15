@@ -32,6 +32,7 @@ class ConfigObject:
                     'community' : self.cfg.get(section, 'community'),
                     'mib' : self.cfg.get(section, 'mib'),
                     'oid' : self.cfg.get(section, 'oid'),
+                    'device_id': self.cfg.get(section, 'device_id'),
                     'incremental_fields': self.get_extra_fields(section, 'incremental_fields')
                 }
 
@@ -48,6 +49,7 @@ class ConfigObject:
                     'oid' : self.cfg.get(section, 'oid'),
                     'join_oid' : self.cfg.get(section, 'join_oid'),
                     'field_to_join': self.cfg.get(section, 'field_to_join'),
+                    'device_id': self.cfg.get(section, 'device_id'),
                     'join_extra' : self.cfg.get(section, 'join_extra').split(','),
                     'incremental_fields': self.get_extra_fields( section, 'incremental_fields')
                 }
@@ -91,3 +93,16 @@ class ConfigObject:
         
         return self.config[SNMP_JOIN_TABLE]        
 
+if __name__ == "__main__":
+
+    from sys import argv
+
+    try:
+
+        cf = ConfigObject(argv[1])
+
+    except ConfigParser.NoOptionError as e:
+
+        logging.error("error in config file: %s" %repr(e))
+    else:
+        print cf.get_requests()
