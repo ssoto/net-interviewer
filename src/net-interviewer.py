@@ -2,8 +2,10 @@
 # -*- coding: utf-8 -*-
 
 import argparse
-import time
+from ConfigParser import NoOptionError
 from Queue import Queue
+import sys
+import time
 
 from snmp.table import SnmpTableRequest
 from snmp.factory import SnmpTableFactory
@@ -42,7 +44,12 @@ def task ( queue, rq_config ):
     else:
         incremental_fields = None
 
-    queue.put((data, incremental_fields))
+    # on the develop moment only one custom_field is needed: device_id
+    custom_fields = {}
+    # consider the name difference camel case vs _ separator
+    custom_fields['DeviceId'] = rq_config['device_id']
+
+    queue.put((data, incremental_fields, custom_fields))
 
     logging.debug('request done succesfully to %s: %s' 
         %(job.device, str(data)[0:20]))
@@ -52,7 +59,11 @@ if __name__ == "__main__":
 
     args = parse_args()
 
-    cf = ConfigObject(args.config_path)
+    try:
+        cf = ConfigObject(args.config_path)
+    except NoOptionError as e:
+        logging.error("error in config file: %s" %repr(e))
+        sys.exit(0)
 
     task_list = []
     queue = Queue()
@@ -62,6 +73,7 @@ if __name__ == "__main__":
     r_th.start()
     
     output_config = cf.get_output_section()
+    
     s_th = SenderThread(send_queue, output_config, name='SenderThread')
     s_th.start()
 
