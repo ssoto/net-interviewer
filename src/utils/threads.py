@@ -3,6 +3,7 @@
 
 import json
 import re
+import pprint
 import socket
 from time import sleep as time_sleep
 from threading import Thread, Event
@@ -32,6 +33,7 @@ class StoppableTimerThread(Thread):
 
         self.interval = int(interval)
 
+
     def stop(self):
         self.stop_event.set()
 
@@ -42,10 +44,11 @@ class StoppableTimerThread(Thread):
 
         while not self.stop_event.is_set():
 
-            self.stop_event.wait(self.interval)
             if self.stopped():
                 return 0
             self.target(*self.__args)
+
+            self.stop_event.wait(self.interval)
 
 
 class Memory(object):
@@ -79,6 +82,8 @@ class ReaderThread(Thread):
         self.send_queue = send_queue
         self.__memory = Memory()
         self.__mapping = { 'IpAddress': get_decimal_ip }
+        self.__bandwidth_fields_set = \
+                set(['DeltaTime', 'OutOctetsDiff', 'InOctetsDiff', 'Speed'])
 
     def stop(self):
         self.stop_event.set()
@@ -102,7 +107,8 @@ class ReaderThread(Thread):
                 elements_to_add = {}
 
                 for metric in elements[key]:
-                
+                    
+                    # make incremental fields management
                     if metric in incremental_fields:
                         new_value = elements[key][metric]
                         new_ts = elements[key]['logTimestamp']
@@ -115,6 +121,28 @@ class ReaderThread(Thread):
                         for new_value in new_values:
                             elements_to_add[new_value] = new_values[new_value]
                     # update elements[key] dictioanry
+                    
+                    element = elements[key]
+
+                    # check if is possible calculate bandwith,
+                    # it will depend of the fields available
+
+                all_fields = elements[key].copy()
+                all_fields.update(elements_to_add)
+
+                if self.__bandwidth_fields_set.issubset(set(all_fields.keys())):
+
+                    seconds = all_fields['DeltaTime']
+                    speed = int(all_fields['Speed'])
+                    increment_in_octets = all_fields['InOctetsDiff']
+                    increment_out_octets = all_fields['OutOctetsDiff']
+
+                    elements_to_add['Bandwidth'] \
+                        = self.__bandwidth_calculation(seconds, 
+                                                       speed, 
+                                                       increment_in_octets,
+                                                       increment_out_octets)
+
                 elements[key].update(elements_to_add)
 
 
@@ -127,6 +155,15 @@ class ReaderThread(Thread):
             
         for key in elements_to_del:
             del elements[key]
+
+    def __bandwidth_calculation(self, seconds, speed, increment_in_octets,
+        increment_out_octets):
+        
+        result = max (increment_out_octets,increment_in_octets) * 8 * 100 / \
+            ( seconds * speed)
+
+        #logging.debug( "calculated bandwidth: %s" % result)
+        return result
 
     def add_incremental_metrics(self, metric_name, new_value, old_value, new_ts, old_ts):
 
@@ -144,7 +181,6 @@ class ReaderThread(Thread):
         if ts_diff > 0:
             result[ '%s%s' %(metric_name, 'DiffRate')] = ammount_diff / ts_diff
             
-
         return result
 
     def add_datediff(self, elements, instance_name):
@@ -162,13 +198,11 @@ class ReaderThread(Thread):
                 if data[element_k].has_key(map_k):
                     data[element_k][map_k] = self.__mapping[map_k](data[element_k][map_k])
 
-
     def __add_custom_fields(self, elements, custom_data):
         for item in elements:
             for field in custom_data:
                 elements[item][field] = custom_data[field]
                 #logging.debug('added custom field %s => %s to data' %(field, custom_data[field]))
-
 
     def run(self):
 
@@ -178,13 +212,15 @@ class ReaderThread(Thread):
 
                 (elements, incremental_fields, custom_data) = product
 
-
                 if self.__mapping:
                     self.__apply_map(elements)
 
+                # calculate incremental fields
                 if incremental_fields:
                     self.do_increments(elements, incremental_fields)
-                
+
+                # add custom data to elements, you know, fields from
+                # config file to add to each data
                 if custom_data:
                     self.__add_custom_fields(elements, custom_data)
 

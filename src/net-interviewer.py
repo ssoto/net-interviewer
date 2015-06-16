@@ -28,7 +28,7 @@ def parse_args():
     return parser.parse_args()
 
 
-def task ( queue, rq_config ):
+def task (queue, rq_config):
 
     job = SnmpTableFactory.create_request(rq_config)
     try:
