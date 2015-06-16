@@ -12,7 +12,8 @@ def get_current_time(date_format_str=None):
         date_format_str = DATE_FORMAT
 
     utc_now = datetime.datetime.utcnow()
-    return utc_now.strftime(DATE_FORMAT)
+    now = datetime.datetime.now()
+    return now.strftime(DATE_FORMAT)
 
 def parse_datetime(date_str, date_format_str=None):
     if not date_format_str:
