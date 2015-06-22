@@ -120,14 +120,16 @@ class ReaderThread(Thread):
                                                                   old_ts)
                         for new_value in new_values:
                             elements_to_add[new_value] = new_values[new_value]
-                    # update elements[key] dictioanry
                     
+                    # update elements[key] dictioanry
                     element = elements[key]
 
-                    # check if is possible calculate bandwith,
-                    # it will depend of the fields available
-
+                # check if is possible calculate bandwith,
+                # it will depend of the fields available
+                # first we create a new dictionary with key filds in elements
                 all_fields = elements[key].copy()
+                # add to the elements from the temporal elements to add the 
+                # incremental new elements calculated
                 all_fields.update(elements_to_add)
 
                 if self.__bandwidth_fields_set.issubset(set(all_fields.keys())):
@@ -161,8 +163,8 @@ class ReaderThread(Thread):
         
         result = max (increment_out_octets,increment_in_octets) * 8 * 100 / \
             ( seconds * speed)
-
-        #logging.debug( "calculated bandwidth: %s" % result)
+        #if result > 1:
+        #    logging.info( "calculated bandwidth value is greater than 1!! : %s" % result)
         return result
 
     def add_incremental_metrics(self, metric_name, new_value, old_value, new_ts, old_ts):
@@ -171,8 +173,16 @@ class ReaderThread(Thread):
         
         new_ammount = int(re.findall(r'\d+',new_value)[0])
         old_ammount = int(re.findall(r'\d+',old_value)[0])
-            
+        
+        if new_ammount <= old_ammount:
+            new_ammount += pow(2,32) - 1
+        
+
         ammount_diff = new_ammount - old_ammount
+
+        # logging.debug("{ old: %s; new: %s, diff: %s }" %(new_ammount, old_ammount, ammount_diff ))
+
+
         ts_diff = times_str_diff(new_ts, old_ts)
 
         result[ '%s%s' %(metric_name, 'Diff')] = ammount_diff
