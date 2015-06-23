@@ -107,17 +107,13 @@ class ReaderThread(Thread):
                 elements_to_add = {}
 
                 for metric in elements[key]:
-                    
                     # make incremental fields management
                     if metric in incremental_fields:
                         new_value = elements[key][metric]
                         new_ts = elements[key]['logTimestamp']
                         (old_value, old_ts) = self.__memory.get_instance(key, metric)
-                        new_values = self.add_incremental_metrics(metric,
-                                                                  new_value,
-                                                                  old_value,
-                                                                  new_ts, 
-                                                                  old_ts)
+                        new_values = self.get_incrementals( metric, new_value,
+                            old_value, new_ts,  old_ts)
                         for new_value in new_values:
                             elements_to_add[new_value] = new_values[new_value]
                     
@@ -133,17 +129,17 @@ class ReaderThread(Thread):
                 all_fields.update(elements_to_add)
 
                 if self.__bandwidth_fields_set.issubset(set(all_fields.keys())):
-
                     seconds = all_fields['DeltaTime']
                     speed = int(all_fields['Speed'])
                     increment_in_octets = all_fields['InOctetsDiff']
                     increment_out_octets = all_fields['OutOctetsDiff']
-
                     elements_to_add['Bandwidth'] \
                         = self.__bandwidth_calculation(seconds, 
                                                        speed, 
                                                        increment_in_octets,
                                                        increment_out_octets)
+                    logging.debug("\n\t round(max(%s,%s)*8*100 / (%s*%s), 4) == round(%s, 4)" 
+                        %(increment_out_octets, increment_in_octets, speed, seconds, elements_to_add['Bandwidth']))
 
                 elements[key].update(elements_to_add)
 
@@ -167,21 +163,19 @@ class ReaderThread(Thread):
         #    logging.info( "calculated bandwidth value is greater than 1!! : %s" % result)
         return result
 
-    def add_incremental_metrics(self, metric_name, new_value, old_value, new_ts, old_ts):
+    def get_incrementals(self, metric_name, new_value, old_value, new_ts, old_ts):
 
         result = {}
         
         new_ammount = int(re.findall(r'\d+',new_value)[0])
         old_ammount = int(re.findall(r'\d+',old_value)[0])
         
-        if new_ammount <= old_ammount:
+        if new_ammount < old_ammount:
             new_ammount += pow(2,32) - 1
-        
+            logging.debug("** Overflow: { old: %s; new: %s, diff: %s }" %(new_ammount, old_ammount, ammount_diff ))
 
         ammount_diff = new_ammount - old_ammount
-
-        # logging.debug("{ old: %s; new: %s, diff: %s }" %(new_ammount, old_ammount, ammount_diff ))
-
+        logging.debug("ammount for %s is %s" %(metric_name, ammount_diff))
 
         ts_diff = times_str_diff(new_ts, old_ts)
 
@@ -190,6 +184,9 @@ class ReaderThread(Thread):
         # avoid ZeroDivision try catch
         if ts_diff > 0:
             result[ '%s%s' %(metric_name, 'DiffRate')] = ammount_diff / ts_diff
+        else:
+            logging.error("Zerodivision between, loose data %s for metric %s" 
+                %(ammount_diff, metric_name))
             
         return result
 
