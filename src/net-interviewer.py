@@ -15,7 +15,7 @@ from utils.threads import StoppableTimerThread, ReaderThread, SenderThread
 import logging
 logging.basicConfig( 
     format='%(asctime)s - %(pathname)s:%(lineno)d - %(threadName)s : %(levelname)s  : %(message)s', 
-    level=logging.DEBUG)
+    level=logging.ERROR)
 
 def parse_args():
 
