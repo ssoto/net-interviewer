@@ -172,7 +172,6 @@ class ReaderThread(Thread):
         
         if new_ammount < old_ammount:
             new_ammount += pow(2,32) - 1
-            logging.debug("** Overflow: { old: %s; new: %s, diff: %s }" %(new_ammount, old_ammount, ammount_diff ))
 
         ammount_diff = new_ammount - old_ammount
         logging.debug("ammount for %s is %s" %(metric_name, ammount_diff))
