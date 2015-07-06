@@ -7,10 +7,10 @@ from Queue import Queue
 import sys
 import time
 
-from snmp.table import SnmpTableRequest
-from snmp.factory import SnmpTableFactory
-from utils.config_parser import ConfigObject
-from utils.threads import StoppableTimerThread, ReaderThread, SenderThread
+from interviewer.snmp.table import SnmpTableRequest
+from interviewer.snmp.factory import SnmpTableFactory
+from interviewer.utils.config_parser import ConfigObject
+from interviewer.utils.threads import StoppableTimerThread, ReaderThread, SenderThread
 
 import logging
 logging.basicConfig( 
@@ -48,7 +48,7 @@ def task (queue, rq_config):
     custom_fields = {}
     # consider the name difference camel case vs _ separator
     custom_fields['DeviceId'] = rq_config['device_id']
-
+    import ipdb; ipdb.set_trace()
     queue.put((data, incremental_fields, custom_fields))
 
     logging.debug('request done succesfully to %s: %s' 
@@ -66,10 +66,10 @@ if __name__ == "__main__":
         sys.exit(0)
 
     task_list = []
-    queue = Queue()
+    raw_data_queue = Queue()
     send_queue = Queue()
 
-    r_th = ReaderThread(queue, send_queue, name='ReaderThread')
+    r_th = ReaderThread(raw_data_queue, send_queue, name='ReaderThread')
     r_th.start()
     
     output_config = cf.get_output_section()
@@ -86,7 +86,7 @@ if __name__ == "__main__":
         th = StoppableTimerThread(interval=rq_config['interval'], 
                                  target=task,
                                  name='%s-RequestThread' %rq_config['name'],
-                                 args=(queue, rq_config),)
+                                 args=(raw_data_queue, rq_config),)
         th.start()
         task_list.append(th)
 

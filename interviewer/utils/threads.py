@@ -9,8 +9,8 @@ from time import sleep as time_sleep
 from threading import Thread, Event
 from Queue import Empty
 
-from utils.timeutils import times_str_diff
-from utils.ip_manager import get_decimal_ip
+from interviewer.utils.timeutils import times_str_diff
+from interviewer.utils.ip_manager import get_decimal_ip
 
 import logging
 logging.basicConfig( format='%(asctime)s - %(pathname)s:%(lineno)d : %(levelname)s  : %(message)s', 
@@ -52,6 +52,9 @@ class StoppableTimerThread(Thread):
 
 
 class Memory(object):
+    """
+
+    """
 
     def __init__(self):
         self.__memory = {}
@@ -75,12 +78,18 @@ class Memory(object):
 class ReaderThread(Thread):
 
 
-    def __init__(self, queue, send_queue, name):
+    def __init__(self, queue, send_queue, name, memory=None):
+        if not queue or not send_queue or not name:
+            raise TypeError
         super(ReaderThread, self).__init__(name=name)
         self.stop_event = Event()
-        self.queue = queue
+        self.input_queue = queue
         self.send_queue = send_queue
-        self.__memory = Memory()
+        if not memory:
+            self.__memory = Memory()
+        else:
+            self.__memory = memory
+
         self.__mapping = { 'IpAddress': get_decimal_ip }
         self.__bandwidth_fields_set = \
                 set(['DeltaTime', 'OutOctetsDiff', 'InOctetsDiff', 'Speed'])
@@ -134,7 +143,7 @@ class ReaderThread(Thread):
                     increment_in_octets = all_fields['InOctetsDiff']
                     increment_out_octets = all_fields['OutOctetsDiff']
                     elements_to_add['Bandwidth'] \
-                        = self.__bandwidth_calculation(seconds, 
+                        = self.bandwidth_calculation(seconds, 
                                                        speed, 
                                                        increment_in_octets,
                                                        increment_out_octets)
@@ -154,13 +163,21 @@ class ReaderThread(Thread):
         for key in elements_to_del:
             del elements[key]
 
-    def __bandwidth_calculation(self, seconds, speed, increment_in_octets,
+    def bandwidth_calculation(self, seconds, speed, increment_in_octets,
         increment_out_octets):
+        """ Bandwidtch is the average of utilization for a full duplex network
+        interface. The formula:
+
+            >>> max (Delta_in_octest, Delta_out_octets) * 8 * 100 / 
+                ( seconds * speed)
+
+        Ref: http://www.cisco.com/c/en/us/support/docs/ip/simple-network-management-protocol-snmp/8141-calculate-bandwidth-snmp.html        
+
+        """
         
         result = max (increment_out_octets,increment_in_octets) * 8 * 100 / \
-            ( seconds * speed)
-        #if result > 1:
-        #    logging.info( "calculated bandwidth value is greater than 1!! : %s" % result)
+                ( seconds * speed)
+
         return result
 
     def get_incrementals(self, metric_name, new_value, old_value, new_ts, old_ts):
@@ -174,7 +191,6 @@ class ReaderThread(Thread):
             new_ammount += pow(2,32) - 1
 
         ammount_diff = new_ammount - old_ammount
-        logging.debug("ammount for %s is %s" %(metric_name, ammount_diff))
 
         ts_diff = times_str_diff(new_ts, old_ts)
 
@@ -214,7 +230,7 @@ class ReaderThread(Thread):
 
         while not self.stop_event.is_set():
             try:
-                product = self.queue.get(True, 1)
+                product = self.input_queue.get(True, 1)
 
                 (elements, incremental_fields, custom_data) = product
 
@@ -246,7 +262,7 @@ class SenderThread(Thread):
 
         super(SenderThread, self).__init__(name=name)
 
-        self.queue = queue
+        self.input_queue = queue
         self.stop_event = Event()
 
         if cfg:
@@ -282,7 +298,7 @@ class SenderThread(Thread):
 
         while not self.stop_event.is_set():
             try:
-                message = self.queue.get(True, 1)
+                message = self.input_queue.get(True, 1)
                 logging.debug('thread read data from sender queue')
                 self.send_message(message)
             except Empty as exception:
