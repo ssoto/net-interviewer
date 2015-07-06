@@ -1,21 +1,24 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
+# non integer divisions
+from __future__ import division
+
 import unittest
 import mock
 import datetime
 from Queue import Queue
 
-from interviewer.utils.threads import ReaderThread, Memory
+
+from interviewer.utils.threads import ReaderThread
 
 
 class TestSampleClass(unittest.TestCase):
 
     def setUp(self):
-        self.m = Memory()
         self.raw_q = Queue()
         self.send_q = Queue()
-        self.r_th = ReaderThread(self.raw_q, self.send_q, 'TestThread', self.m)
+        self.r_th = ReaderThread(self.raw_q, self.send_q, 'TestThread')
 
 
     def tearDown(self):
@@ -23,85 +26,70 @@ class TestSampleClass(unittest.TestCase):
         self.r_th = None
 
 
-    @mock.patch('interviewer.utils.threads.Memory')
-    @mock.patch('Queue.Queue')
-    def test_creation(self, MockMemory, MockQueue):
-        m = MockMemory()
-        raw_q = MockQueue()
-        send_q = MockQueue()
-        r_th = ReaderThread(raw_q, send_q, 'TestThread', m)
+    def testGetIncrementals_1(self):
+        """ ReaderThread.get_incrementals() returns normal Diff value Δvalue = 7 
+        nd Δs = 30
+        """
+        name = 'devil_metric'
+        # Δvalue = 7
+        old_value = '2'
+        new_value = '9'
+        # Δs = 30
+        old_ts = '2015-07-06 12:17:15'
+        new_ts = '2015-07-06 12:17:45'
+        # range is [0, 2³-1] 
+        register_bytes = 3
 
-
-    def test_first_call(self):
-        """ REaderThread.do_increments() TODO"""
-        self.r_th.start()
-
-        data1 = {'[2]["WellnessTelecom"][d8:fc:93:11:d2:4e]': {'AgingLeft': '50 second',
-                                               'AssociationState': '3',
-                                               'BytesReceived': '21803026 byte',
-                                               'BytesSent': '46846873 byte',
-                                               'CurrentTxRateSet': '0F ',
-                                               'Duplicates': '1 packet',
-                                               'IpAddress': '0A C8 03 3A ',
-                                               'MicErrors': '0 error',
-                                               'MicMissingFrames': '0 packet',
-                                               'MsduFails': '0 packet',
-                                               'MsduRetries': '5249 packet',
-                                               'PacketsReceived': '83326 packet',
-                                               'PacketsSent': '73255 packet',
-                                               'ParentAddress': '0:23:4:78:b3:60',
-                                               'SigQuality': '36 percentage',
-                                               'SignalStrength': '-52 dBm',
-                                               'UpTime': '21570 second',
-                                               'VlanId': '300',
-                                               'WepErrors': '0 packet',
-                                               'index': '[2]["WellnessTelecom"][d8:fc:93:11:d2:4e]',
-                                               'logTimestamp': '2015-07-03 14:21:18'}}
-        data2 = {'[2]["WellnessTelecom"][d8:fc:93:11:d2:4e]': {'AgingLeft': '50 second',
-                                               'AssociationState': '3',
-                                               # data 1 + 300
-                                               #'BytesReceived': '21803026 byte',
-                                               'BytesReceived': '21803326 byte',
-                                               # data 1 + 300
-                                               #'BytesSent': '46846873 byte',
-                                               'BytesSent': '46847173 byte',
-                                               'CurrentTxRateSet': '0F ',
-                                               'Duplicates': '1 packet',
-                                               'IpAddress': '0A C8 03 3A ',
-                                               'MicErrors': '0 error',
-                                               'MicMissingFrames': '0 packet',
-                                               'MsduFails': '0 packet',
-                                               'MsduRetries': '5249 packet',
-                                               # data 1 + 100
-                                               #'PacketsReceived': '83326 packet',
-                                               'PacketsReceived': '83626 packet',
-                                               # data 1 + 100
-                                               #'PacketsSent': '73255 packet',
-                                               'PacketsSent': '73555 packet',
-                                               'ParentAddress': '0:23:4:78:b3:60',
-                                               'SigQuality': '36 percentage',
-                                               'SignalStrength': '-52 dBm',
-                                               'UpTime': '21570 second',
-                                               'VlanId': '300',
-                                               'WepErrors': '0 packet',
-                                               'index': '[2]["WellnessTelecom"][d8:fc:93:11:d2:4e]',
-                                               'logTimestamp': '2015-07-03 14:21:18'}}
-        incremental_fields = ['PacketsSent', 'PacketsReceived', 'BytesSent', 'BytesReceived']
-
-        custom_fields = {}
-        custom_fields['DeviceId'] = 'WT_ap_1'
-
-        self.raw_q.put((data1, incremental_fields, custom_fields))
-
-        self.raw_q.put((data2, incremental_fields, custom_fields))
-
-
-    def get_incrementals_1(self, )
-
+        result = self.r_th.get_incrementals(metric_name=name, new_value=new_value, 
+            old_value=old_value, new_ts=new_ts, old_ts=old_ts, 
+            register_bytes=register_bytes)
         
+        self.assertEqual(result[name+'Diff'] == None, False)
+        self.assertEqual(result[name+'Diff'] == 7, True)
+        self.assertEqual(result[name+'DiffRate'] == None, False)
+        self.assertEqual(result[name+'DiffRate'] == 7/30, True)
+
+    def testGetIncrementals_2(self):
+        """ ReaderThread.get_incrementals() returns check behaviour with overflow
+        Δvalue = 3 and Δs = 30
+        """
+        name = 'devil_metric'
+        # value = 3
+        old_value = '5'
+        new_value = '1'
+        # Δs = 30
+        old_ts = '2015-07-06 12:17:15'
+        new_ts = '2015-07-06 12:17:45'
+        # range is [0, 2³-1] => [0, 7]
+        register_bytes = 3
+
+        result = self.r_th.get_incrementals(metric_name=name, new_value=new_value, old_value=old_value, new_ts=new_ts, old_ts=old_ts, register_bytes=register_bytes)
+        
+        self.assertEqual(result[name+'Diff'] == None, False)
+        self.assertEqual(result[name+'Diff'] == 3, True)
+        self.assertEqual(result[name+'DiffRate'] == None, False)
+        self.assertEqual(result[name+'DiffRate'] == 3/30, True)
 
 
+    def testGetIncrementals_3(self):
+        """ ReaderThread.get_incrementals() when  time increment is 0, the new 
+        DiffRate value cant be calculated, None
+        """
+        name = 'devil_metric'
+        #Δvalue = 3
+        old_value = '5'
+        new_value = '1'
+        # Δs = 0
+        single_ts = '2015-07-06 12:17:15'
+        # range is [0, 2³-1] => [0, 7]
+        register_bytes = 3
 
+        result = self.r_th.get_incrementals(metric_name=name, new_value=new_value, 
+            old_value=old_value, new_ts=single_ts, old_ts=single_ts, 
+            register_bytes=register_bytes)
 
-if __name__ == '__main__':
-    unittest.main()
+        self.assertEqual(result[name+'Diff'] == None, False)
+        self.assertEqual(result[name+'Diff'] == 3, True)
+                
+        with self.assertRaises(KeyError):
+            result[name+'DiffRate']

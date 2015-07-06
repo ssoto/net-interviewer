@@ -1,16 +1,15 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
+import datetime
+import logging
 from Queue import Queue
 import unittest2
-import datetime
 
 from interviewer.utils.threads import Memory
 
 
-import logging
-logging.basicConfig( format='%(asctime)s - %(pathname)s:%(lineno)d : %(levelname)s  : %(message)s', 
-                     level=logging.DEBUG)
+
 
 class TestReaderMemoryClass(unittest2.TestCase):
 

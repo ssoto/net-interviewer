@@ -4,20 +4,20 @@
 import datetime
 import logging
 
-DATE_FORMAT = '%Y-%m-%d %H:%M:%S'
-
+def get_date_format():
+    return '%Y-%m-%d %H:%M:%S'
 
 def get_current_time(date_format_str=None):
     if not date_format_str:
-        date_format_str = DATE_FORMAT
+        date_format_str = get_date_format()
 
     utc_now = datetime.datetime.utcnow()
     now = datetime.datetime.now()
-    return now.strftime(DATE_FORMAT)
+    return now.strftime(get_date_format())
 
 def parse_datetime(date_str, date_format_str=None):
     if not date_format_str:
-        date_format_str = DATE_FORMAT
+        date_format_str = get_date_format()
     return datetime.datetime.strptime(date_str, date_format_str)
 
 

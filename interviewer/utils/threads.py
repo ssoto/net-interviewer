@@ -1,9 +1,11 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
+from __future__ import division
 import json
-import re
+import logging
 import pprint
+import re
 import socket
 from time import sleep as time_sleep
 from threading import Thread, Event
@@ -12,9 +14,6 @@ from Queue import Empty
 from interviewer.utils.timeutils import times_str_diff
 from interviewer.utils.ip_manager import get_decimal_ip
 
-import logging
-logging.basicConfig( format='%(asctime)s - %(pathname)s:%(lineno)d : %(levelname)s  : %(message)s', 
-                     level=logging.DEBUG)
 
 class StoppableTimerThread(Thread):
     """Thread class with a stop() method. The thread itself has to check
@@ -102,6 +101,16 @@ class ReaderThread(Thread):
 
 
     def do_increments(self, elements, incremental_fields):
+        """ Using memory private object elements is walked. 
+        If an older element exists, incremental are created and added to
+            elements 
+        eoc: only is saved in memory
+        """
+
+        # import ipdb; ipdb.set_trace()
+
+        # COMPROBAR QUE self.__memory ESTÁ GUARDANDO BIEN
+        # LAS CLAVES DEL SWITCH AL QUE SE PREGUNTA
 
         new_elements = {}
         elements_to_del = []
@@ -138,18 +147,21 @@ class ReaderThread(Thread):
                 all_fields.update(elements_to_add)
 
                 if self.__bandwidth_fields_set.issubset(set(all_fields.keys())):
+
                     seconds = all_fields['DeltaTime']
                     speed = int(all_fields['Speed'])
                     increment_in_octets = all_fields['InOctetsDiff']
                     increment_out_octets = all_fields['OutOctetsDiff']
-                    elements_to_add['Bandwidth'] \
-                        = self.bandwidth_calculation(seconds, 
+                    
+                    try:
+                        elements_to_add['Bandwidth'] \
+                            = self.bandwidth_calculation(seconds, 
                                                        speed, 
                                                        increment_in_octets,
                                                        increment_out_octets)
-                    logging.debug("\n\t round(max(%s,%s)*8*100 / (%s*%s), 4) == round(%s, 4)" 
-                        %(increment_out_octets, increment_in_octets, speed, seconds, elements_to_add['Bandwidth']))
-
+                    except ValueError as e:
+                        logging.error("Error calculating bandwith: %s" %repr(e))
+                    
                 elements[key].update(elements_to_add)
 
 
@@ -174,13 +186,20 @@ class ReaderThread(Thread):
         Ref: http://www.cisco.com/c/en/us/support/docs/ip/simple-network-management-protocol-snmp/8141-calculate-bandwidth-snmp.html        
 
         """
-        
+        if seconds <= 0 :
+            logging.debug("seconds value less than 0: %s" %seconds)
+            raise ValueError("seconds value must be greater than 0")
+        elif speed <= 0:
+            logging.debug("speed value less than 0: %s" %speed)
+            raise ValueError("speed value must be greater than 0")
+
         result = max (increment_out_octets,increment_in_octets) * 8 * 100 / \
                 ( seconds * speed)
 
         return result
 
-    def get_incrementals(self, metric_name, new_value, old_value, new_ts, old_ts):
+    def get_incrementals(self, metric_name, new_value, old_value, new_ts, old_ts, 
+        register_bytes=32):
 
         result = {}
         
@@ -188,7 +207,7 @@ class ReaderThread(Thread):
         old_ammount = int(re.findall(r'\d+',old_value)[0])
         
         if new_ammount < old_ammount:
-            new_ammount += pow(2,32) - 1
+            new_ammount += pow(2,register_bytes) - 1
 
         ammount_diff = new_ammount - old_ammount
 
@@ -199,9 +218,6 @@ class ReaderThread(Thread):
         # avoid ZeroDivision try catch
         if ts_diff > 0:
             result[ '%s%s' %(metric_name, 'DiffRate')] = ammount_diff / ts_diff
-        else:
-            logging.error("Zerodivision between, loose data %s for metric %s" 
-                %(ammount_diff, metric_name))
             
         return result
 
@@ -249,8 +265,6 @@ class ReaderThread(Thread):
                 if elements:
                     logging.debug('***** adding elements to send_queue')
                     self.send_queue.put(elements)
-                else:
-                    logging.debug('no historical data, ...nothing to send')
 
             except Empty:
                 pass
@@ -283,7 +297,7 @@ class SenderThread(Thread):
                                      socket.SOCK_DGRAM) # UDP
             except socket.error, err:
                 time_sleep(1)
-                logging.debug("Error sending data: %s" %repr(err))
+                logging.error("Error sending data: %s" %repr(err))
                 pass
             else:
                 for element in message:
@@ -299,7 +313,7 @@ class SenderThread(Thread):
         while not self.stop_event.is_set():
             try:
                 message = self.input_queue.get(True, 1)
-                logging.debug('thread read data from sender queue')
+                logging.info('thread read data from sender queue')
                 self.send_message(message)
             except Empty as exception:
                 pass

@@ -5,11 +5,9 @@ from Queue import Queue
 import unittest2
 
 from interviewer.utils.threads import ReaderThread
-
-
 import logging
-logging.basicConfig( format='%(asctime)s - %(pathname)s:%(lineno)d : %(levelname)s  : %(message)s', 
-                     level=logging.DEBUG)
+# logging.basicConfig( format='%(asctime)s - %(pathname)s:%(lineno)d : %(levelname)s  : %(message)s', 
+#                      level=logging.DEBUG)
 
 class TestReaderThreadBandwidth(unittest2.TestCase):
 
@@ -44,12 +42,12 @@ class TestReaderThreadBandwidth(unittest2.TestCase):
             r_th = ReaderThread(queue1, queue2, None)
 
     def test_zero_division_error(self):
-        """  ReaderThread.bandwidth_calculation: ensure raises ZeroDivisionError"""
+        """  ReaderThread.bandwidth_calculation: ensure raies ValueError"""
         seconds = 0
         speed = 1000000
         increment_in_octets = 30
         increment_out_octets  = 50
-        with self.assertRaises(ZeroDivisionError):
+        with self.assertRaises(ValueError):
 
             self.r_th.bandwidth_calculation(
                                 seconds,

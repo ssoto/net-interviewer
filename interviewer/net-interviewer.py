@@ -13,9 +13,7 @@ from interviewer.utils.config_parser import ConfigObject
 from interviewer.utils.threads import StoppableTimerThread, ReaderThread, SenderThread
 
 import logging
-logging.basicConfig( 
-    format='%(asctime)s - %(pathname)s:%(lineno)d - %(threadName)s : %(levelname)s  : %(message)s', 
-    level=logging.ERROR)
+
 
 def parse_args():
 
@@ -24,6 +22,10 @@ def parse_args():
     parser.add_argument('-c', '--config', dest='config_path',
                         default='./net_interviewer.conf', action='store',
                         help='the file config path to read')
+
+    parser.add_argument('-d', '--debug', dest='debug_mode', 
+                        action='store_true', default=False,
+                        help='activate debug mode')
 
     return parser.parse_args()
 
@@ -48,11 +50,11 @@ def task (queue, rq_config):
     custom_fields = {}
     # consider the name difference camel case vs _ separator
     custom_fields['DeviceId'] = rq_config['device_id']
-    import ipdb; ipdb.set_trace()
+
     queue.put((data, incremental_fields, custom_fields))
 
     logging.debug('request done succesfully to %s: %s' 
-        %(job.device, str(data)[0:20]))
+        %(job.device, str(data)[0:30]))
 
 
 if __name__ == "__main__":
@@ -64,6 +66,16 @@ if __name__ == "__main__":
     except NoOptionError as e:
         logging.error("error in config file: %s" %repr(e))
         sys.exit(0)
+
+    if args.debug_mode:
+        logging.basicConfig( 
+            format='%(asctime)s - %(pathname)s:%(lineno)d - %(threadName)s : %(levelname)s  : %(message)s', 
+            level=logging.DEBUG)
+    else:
+        logging.basicConfig( 
+            format='%(asctime)s - %(pathname)s:%(lineno)d - %(threadName)s : %(message)s', 
+            level=logging.ERROR)
+
 
     task_list = []
     raw_data_queue = Queue()
@@ -90,16 +102,18 @@ if __name__ == "__main__":
         th.start()
         task_list.append(th)
 
-
-
     try:
         while True:
             time.sleep(0.5)
-    except KeyboardInterrupt:
-        
-        logging.debug("trying exit...")
+    except KeyboardInterrupt as e:
+        logging.critical("time to say goobye...")
+        # unexpected behaviour
+    except Exception as e:
+            logging.critical("unexpected Exception captured in main: %s" %repr(e))
 
+    finally:
         for task in task_list:
             task.stop()
-            logging.debug("stopping job %s"
+            logging.critical("stopping %s"
                  %(task.name ))
+        

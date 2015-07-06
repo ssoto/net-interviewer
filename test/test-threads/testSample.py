@@ -1,15 +1,12 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
+import datetime
+import logging
+from mock import MagicMock
 from Queue import Queue
 from unittest import TestCase
-from mock import MagicMock
-import datetime
 
-
-import logging
-logging.basicConfig( format='%(asctime)s - %(pathname)s:%(lineno)d : %(levelname)s  : %(message)s', 
-                     level=logging.DEBUG)
 
 class TestSampleClass(TestCase):
 
