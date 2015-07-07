@@ -291,7 +291,7 @@ class ReaderThread(Thread):
 
 class SenderThread(Thread):
 
-    def __init__( self, queue, cfg=None, name=None):
+    def __init__( self, queue, cfg=[], name=None):
 
         super(SenderThread, self).__init__(name=name)
 
@@ -299,7 +299,7 @@ class SenderThread(Thread):
         self.stop_event = Event()
 
         if cfg:
-            (self.server, self.port) = cfg
+            (self.server, self.port) = cfg[0]
         else:
             (self.server, self.port) = ('127.0.0.1', 8000)
 
