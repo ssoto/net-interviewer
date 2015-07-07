@@ -39,7 +39,10 @@ def task (queue, rq_config):
         logging.error('error in call to %s: %s' %(job.device, repr(e)))
         return
     
+    
     data = job.get_json_reply()
+    
+    import ipdb, pprint; ipdb.set_trace()
 
     if rq_config['incremental_fields']:
        incremental_fields = rq_config['incremental_fields']

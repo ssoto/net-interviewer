@@ -27,13 +27,13 @@ class TestSampleClass(unittest.TestCase):
 
 
     def testGetIncrementals_1(self):
-        """ ReaderThread.get_incrementals() returns normal Diff value Δvalue = 7 
-        nd Δs = 30
+        """ ReaderThread.get_incrementals() returns normal Diff value valueIncrement = 7 and timeIncrement = 30
         """
+
         name = 'devil_metric'
-        # Δvalue = 7
-        old_value = '2'
-        new_value = '9'
+        # Δvalue = 3
+        old_value = '1'
+        new_value = '4'
         # Δs = 30
         old_ts = '2015-07-06 12:17:15'
         new_ts = '2015-07-06 12:17:45'
@@ -44,14 +44,13 @@ class TestSampleClass(unittest.TestCase):
             old_value=old_value, new_ts=new_ts, old_ts=old_ts, 
             register_bytes=register_bytes)
         
-        self.assertEqual(result[name+'Diff'] == None, False)
-        self.assertEqual(result[name+'Diff'] == 7, True)
+        self.assertIsNotNone(result[name+'Diff'])
+        self.assertEqual(result[name+'Diff'] == 3, True)
         self.assertEqual(result[name+'DiffRate'] == None, False)
-        self.assertEqual(result[name+'DiffRate'] == 7/30, True)
+        self.assertEqual(result[name+'DiffRate'] == 3/30, True)
 
     def testGetIncrementals_2(self):
-        """ ReaderThread.get_incrementals() returns check behaviour with overflow
-        Δvalue = 3 and Δs = 30
+        """ ReaderThread.get_incrementals() returns check behaviour with overflow valueIncrement = 3 and timeINcrement = 30
         """
         name = 'devil_metric'
         # value = 3
@@ -72,8 +71,7 @@ class TestSampleClass(unittest.TestCase):
 
 
     def testGetIncrementals_3(self):
-        """ ReaderThread.get_incrementals() when  time increment is 0, the new 
-        DiffRate value cant be calculated, None
+        """ ReaderThread.get_incrementals() when  time increment is 0, the new DiffRate value cant be calculated, None
         """
         name = 'devil_metric'
         #Δvalue = 3
@@ -93,3 +91,24 @@ class TestSampleClass(unittest.TestCase):
                 
         with self.assertRaises(KeyError):
             result[name+'DiffRate']
+
+
+    def testGetIncrementals_4(self):
+        """ ReaderThread.get_incrementals() when value is high than maximum supported by the counter, None is returned
+        """
+        name = 'devil_metric'
+        register_bytes = 3
+        #Δvalue doesn't matter
+        # range is [0, 2³-1] => [0, 7]
+        old_value = '5'
+        # new value is double of register maximum
+        new_value = str((pow(2, register_bytes) - 1 ) * 2)
+        # Δs = 0
+        old_ts = '2015-07-06 12:17:15'
+        new_ts = '2015-07-06 12:47:15'
+
+        result = self.r_th.get_incrementals(metric_name=name, new_value=new_value, 
+            old_value=old_value, new_ts=new_ts, old_ts=old_ts, 
+            register_bytes=register_bytes)
+
+        self.assertEqual(result, dict())

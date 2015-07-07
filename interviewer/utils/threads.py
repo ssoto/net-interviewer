@@ -107,8 +107,7 @@ class ReaderThread(Thread):
         eoc: only is saved in memory
         """
 
-        # import ipdb; ipdb.set_trace()
-
+        #TODO:
         # COMPROBAR QUE self.__memory ESTÁ GUARDANDO BIEN
         # LAS CLAVES DEL SWITCH AL QUE SE PREGUNTA
 
@@ -133,7 +132,8 @@ class ReaderThread(Thread):
                         new_values = self.get_incrementals( metric, new_value,
                             old_value, new_ts,  old_ts)
                         for new_value in new_values:
-                            elements_to_add[new_value] = new_values[new_value]
+                            if new_values.has_key(new_value) and new_values[new_value]:
+                                elements_to_add[new_value] = new_values[new_value]
                     
                     # update elements[key] dictioanry
                     element = elements[key]
@@ -201,23 +201,27 @@ class ReaderThread(Thread):
     def get_incrementals(self, metric_name, new_value, old_value, new_ts, old_ts, 
         register_bytes=32):
 
-        result = {}
-        
+        max_value = pow(2, register_bytes) -1 
+
         new_ammount = int(re.findall(r'\d+',new_value)[0])
         old_ammount = int(re.findall(r'\d+',old_value)[0])
         
-        if new_ammount < old_ammount:
-            new_ammount += pow(2,register_bytes) - 1
+        result = {}        
+        
+        if old_ammount <= max_value and new_ammount <= max_value:
+    
+            if new_ammount < old_ammount:
+                new_ammount += pow(2,register_bytes) - 1
 
-        ammount_diff = new_ammount - old_ammount
+            ammount_diff = new_ammount - old_ammount
 
-        ts_diff = times_str_diff(new_ts, old_ts)
+            ts_diff = times_str_diff(new_ts, old_ts)
 
-        result[ '%s%s' %(metric_name, 'Diff')] = ammount_diff
+            result[ '%s%s' %(metric_name, 'Diff')] = ammount_diff
 
-        # avoid ZeroDivision try catch
-        if ts_diff > 0:
-            result[ '%s%s' %(metric_name, 'DiffRate')] = ammount_diff / ts_diff
+            # avoid ZeroDivision try catch
+            if ts_diff > 0:
+                result[ '%s%s' %(metric_name, 'DiffRate')] = ammount_diff / ts_diff
             
         return result
 
@@ -247,7 +251,7 @@ class ReaderThread(Thread):
         while not self.stop_event.is_set():
             try:
                 product = self.input_queue.get(True, 1)
-
+                import ipdb; ipdb.set_trace()
                 (elements, incremental_fields, custom_data) = product
 
                 if self.__mapping:
