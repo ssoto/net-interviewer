@@ -42,8 +42,6 @@ def task (queue, rq_config):
     
     data = job.get_json_reply()
     
-    import ipdb, pprint; ipdb.set_trace()
-
     if rq_config['incremental_fields']:
        incremental_fields = rq_config['incremental_fields']
     else:

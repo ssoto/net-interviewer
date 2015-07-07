@@ -73,6 +73,10 @@ class Memory(object):
     def get_timestamp(self, instance_name):
         return self.__memory[instance_name][self.__timestamp_field_name]
 
+    def __repr__(self):
+        from pprint import pformat
+        return pformat(self.__memory)
+
 
 class ReaderThread(Thread):
 
@@ -160,7 +164,7 @@ class ReaderThread(Thread):
                                                        increment_in_octets,
                                                        increment_out_octets)
                     except ValueError as e:
-                        logging.error("Error calculating bandwith: %s" %repr(e))
+                        logging.error("Error calculating bandwith for %s: %s" %( key, repr(e)))
                     
                 elements[key].update(elements_to_add)
 
@@ -193,8 +197,12 @@ class ReaderThread(Thread):
             logging.debug("speed value less than 0: %s" %speed)
             raise ValueError("speed value must be greater than 0")
 
-        result = max (increment_out_octets,increment_in_octets) * 8 * 100 / \
+        result = ( max (increment_out_octets,increment_in_octets) * 8 * 100 ) / \
                 ( seconds * speed)
+
+        if result > 1:
+            logging.debug(" bandwidth > 1, formula of bandwidth:   max(%s, %s) * 8 * 100 /  (%s * %s) = %s"
+                %(increment_in_octets, increment_out_octets, seconds, speed, result))
 
         return result
 
@@ -208,8 +216,14 @@ class ReaderThread(Thread):
         
         result = {}        
         
-        if old_ammount <= max_value and new_ammount <= max_value:
-    
+        if old_ammount > max_value:
+            logging.critical("old_ammount of %s is greater than max (%s): %s"
+                %(metric_name, max_value, old_ammount))
+        elif new_ammount > max_value:
+            logging.critical("new_ammount of %s is greater than max (%s): %s"
+                %(metric_name, max_value, new_ammount))
+        else:
+
             if new_ammount < old_ammount:
                 new_ammount += pow(2,register_bytes) - 1
 
@@ -222,7 +236,8 @@ class ReaderThread(Thread):
             # avoid ZeroDivision try catch
             if ts_diff > 0:
                 result[ '%s%s' %(metric_name, 'DiffRate')] = ammount_diff / ts_diff
-            
+
+
         return result
 
     def add_datediff(self, elements, instance_name):
@@ -251,7 +266,7 @@ class ReaderThread(Thread):
         while not self.stop_event.is_set():
             try:
                 product = self.input_queue.get(True, 1)
-                import ipdb; ipdb.set_trace()
+                
                 (elements, incremental_fields, custom_data) = product
 
                 if self.__mapping:
