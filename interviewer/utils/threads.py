@@ -201,7 +201,7 @@ class ReaderThread(Thread):
                 ( seconds * speed)
 
         if result > 1:
-            logging.debug(" bandwidth > 1, formula of bandwidth:   max(%s, %s) * 8 * 100 /  (%s * %s) = %s"
+            logging.critical(" bandwidth > 1, formula of bandwidth:   max(%s, %s) * 8 * 100 /  (%s * %s) = %s"
                 %(increment_in_octets, increment_out_octets, seconds, speed, result))
 
         return result
@@ -337,5 +337,6 @@ class SenderThread(Thread):
             except Empty as exception:
                 pass
             else:
-                logging.debug("***** send message %s ... " %str(message)[0:50])
+                logging.critical(" sent message %s... to %s" 
+                    %(str(message)[0:30], self.server))
 
