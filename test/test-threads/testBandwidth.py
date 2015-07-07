@@ -59,7 +59,7 @@ class TestReaderThreadBandwidth(unittest2.TestCase):
         """  ReaderThread.bandwidth_calculation: return 1 (100%) ussing full in incremental octects"""
         seconds = 30
         speed = 1000000
-        increment_in_octets = seconds * speed / ( 8 * 100)
+        increment_in_octets = seconds * speed / 8
         increment_out_octets  = 50
 
         result = self.r_th.bandwidth_calculation(
@@ -74,7 +74,7 @@ class TestReaderThreadBandwidth(unittest2.TestCase):
         """  ReaderThread.bandwidth_calculation: return 1 (100%) ussing full out incremental octects"""
         seconds = 30
         speed = 1000000
-        increment_out_octets = seconds * speed / ( 8 * 100)
+        increment_out_octets = seconds * speed / 8
         increment_in_octets  = 50
 
         result = self.r_th.bandwidth_calculation(
@@ -90,7 +90,7 @@ class TestReaderThreadBandwidth(unittest2.TestCase):
         seconds = 30
         speed = 1000000
         increment_in_octets = 3
-        increment_out_octets  = 0.5 * seconds * speed / ( 8 * 100)
+        increment_out_octets  = 0.5 * seconds * speed / 8
 
         result = self.r_th.bandwidth_calculation(
                                 seconds,
@@ -105,7 +105,7 @@ class TestReaderThreadBandwidth(unittest2.TestCase):
         seconds = 30
         speed = 1000000
         increment_out_octets = 3
-        increment_in_octets  = 0.5 * seconds * speed / ( 8 * 100)
+        increment_in_octets  = 0.5 * seconds * speed / 8
 
         result = self.r_th.bandwidth_calculation(
                                 seconds,

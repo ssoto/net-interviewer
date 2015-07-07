@@ -168,7 +168,6 @@ class ReaderThread(Thread):
                     
                 elements[key].update(elements_to_add)
 
-
             else:                
                 elements_to_del.append(key)
             
@@ -184,11 +183,10 @@ class ReaderThread(Thread):
         """ Bandwidtch is the average of utilization for a full duplex network
         interface. The formula:
 
-            >>> max (Delta_in_octest, Delta_out_octets) * 8 * 100 / 
+            >>> max (Delta_in_octest, Delta_out_octets) * 8 / 
                 ( seconds * speed)
 
-        Ref: http://www.cisco.com/c/en/us/support/docs/ip/simple-network-management-protocol-snmp/8141-calculate-bandwidth-snmp.html        
-
+        Ref: http://www.cisco.com/c/en/us/support/docs/ip/simple-network-management-protocol-snmp/8141-calculate-bandwidth-snmp.html
         """
         if seconds <= 0 :
             logging.debug("seconds value less than 0: %s" %seconds)
@@ -197,7 +195,7 @@ class ReaderThread(Thread):
             logging.debug("speed value less than 0: %s" %speed)
             raise ValueError("speed value must be greater than 0")
 
-        result = ( max (increment_out_octets,increment_in_octets) * 8 * 100 ) / \
+        result = ( max (increment_out_octets,increment_in_octets) * 8 ) / \
                 ( seconds * speed)
 
         if result > 1:
@@ -291,7 +289,7 @@ class ReaderThread(Thread):
 
 class SenderThread(Thread):
 
-    def __init__( self, queue, cfg=[], name=None):
+    def __init__( self, queue, cfg=None, name=None):
 
         super(SenderThread, self).__init__(name=name)
 
@@ -299,9 +297,11 @@ class SenderThread(Thread):
         self.stop_event = Event()
 
         if cfg:
-            (self.server, self.port) = cfg[0]
+            self.server = cfg[0]
+            self.port = cfg
         else:
-            (self.server, self.port) = ('127.0.0.1', 8000)
+            self.server = '127.0.0.1'
+            self.port = 8000
 
 
     def stop(self):

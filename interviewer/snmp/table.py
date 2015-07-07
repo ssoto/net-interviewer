@@ -18,7 +18,7 @@ class SnmpTableRequest(object):
 
     """
     def __init__ (self, device, port=161, community="public", snmp_version="2c", 
-        mib=None, oid=None, cmd_options=None):
+        mib=None, oid=None):
 
         default_arguments = "-Cf", ",", "-Cl", "-CB", "-Ci", "-OX", "-Cb", "-Oe"
         
@@ -40,7 +40,8 @@ class SnmpTableRequest(object):
         self.__cmd.append("%s:%s" %(self.mib, self.oid_name))
         
         command_str = ' '.join(map(str, self.__cmd))
-        logging.info("new request created: \n\t%s" % command_str)
+        msg = "new request created: \n\t%s" % command_str
+        logging.info(msg)
 
     
     def request(self, simulate=False):

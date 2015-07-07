@@ -7,7 +7,6 @@ from Queue import Queue
 import sys
 import time
 
-from interviewer.snmp.table import SnmpTableRequest
 from interviewer.snmp.factory import SnmpTableFactory
 from interviewer.utils.config_parser import ConfigObject
 from interviewer.utils.threads import StoppableTimerThread, ReaderThread, SenderThread
@@ -36,7 +35,8 @@ def task (queue, rq_config):
     try:
         job.request()
     except Exception as e:
-        logging.error('error in call to %s: %s' %(job.device, repr(e)))
+        msg = 'error in call to %s: %s' %(job.device, repr(e))
+        logging.error(msg)
         return
     
     
@@ -65,7 +65,8 @@ if __name__ == "__main__":
     try:
         cf = ConfigObject(args.config_path)
     except NoOptionError as e:
-        logging.error("error in config file: %s" %repr(e))
+        msg = "error in config file: %s" %repr(e)
+        logging.error(msg)
         sys.exit(0)
 
     if args.debug_mode:
@@ -110,11 +111,12 @@ if __name__ == "__main__":
         logging.critical("time to say goobye...")
         # unexpected behaviour
     except Exception as e:
-            logging.critical("unexpected Exception captured in main: %s" %repr(e))
+        msg = "unexpected Exception captured in main: %s" %repr(e)
+        logging.critical(msg)
 
     finally:
         for task in task_list:
             task.stop()
-            logging.critical("stopping %s"
-                 %(task.name ))
+            msg = "stopping %s" %(task.name )
+            logging.critical(msg)
         
