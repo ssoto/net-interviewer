@@ -9,7 +9,7 @@ import re
 import socket
 from time import sleep as time_sleep
 from threading import Thread, Event
-from Queue import Empty
+from Queue import Queue, Empty
 
 from interviewer.utils.timeutils import times_str_diff
 from interviewer.utils.ip_manager import get_decimal_ip
@@ -293,15 +293,22 @@ class SenderThread(Thread):
 
         super(SenderThread, self).__init__(name=name)
 
-        self.input_queue = queue
-        self.stop_event = Event()
+        if not queue:
+            raise ValueError('queue parameter cannot be null')
+
+        if type(cfg) == list and ( len(cfg) != 2 or \
+            type(cfg[0]) != str or type(cfg[1]) != int ):
+            raise ValueError('cfg parameter must be list with len 2 ')
 
         if cfg:
             self.server = cfg[0]
-            self.port = cfg
+            self.port = cfg[1]
         else:
             self.server = '127.0.0.1'
             self.port = 8000
+
+        self.input_queue = queue
+        self.stop_event = Event()
 
 
     def stop(self):
