@@ -12,9 +12,7 @@ from utils.timeutils import get_current_time
 
 class SnmpTableRequest(object):
     """
-    Example of how could be a generic snmp table request
-
-    options are 
+    Generic snmp table request class
 
     """
     def __init__ (self, device, port=161, community="public", snmp_version="2c", 
@@ -129,12 +127,11 @@ class SnmpTableRequest(object):
 class SnmpJoinedTableRequest(SnmpTableRequest):
 
     def __init__(self, device, port=161, community="public", snmp_version="2c", 
-        mib=None, oid=None, cmd_options=None, join_oid=None, field_to_join=None,
+        mib=None, oid=None, join_oid=None, field_to_join=None,
          join_extra=None):
         
         super(SnmpJoinedTableRequest, self).__init__(device=device, port=port, 
-            community=community, snmp_version=snmp_version, mib=mib, oid=oid, 
-            cmd_options=cmd_options)
+            community=community, snmp_version=snmp_version, mib=mib, oid=oid)
 
         self.__joined_table_req = SnmpTableRequest(device=device, port=port, 
             community=community, snmp_version=snmp_version, mib=mib, 
